@@ -1,3 +1,4 @@
+// config.js - Konfigurasi game Phaser
 import BootScene from './scenes/boot-scene.js';
 import MenuScene from './scenes/menu-scene.js';
 import RoleSelectScene from './scenes/role-select-scene.js';
