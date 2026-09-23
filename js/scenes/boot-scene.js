@@ -30,7 +30,7 @@ export default class BootScene extends Phaser.Scene {
         
         // Load semua gambar
         this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png');
-        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png');
+        this.load.image('logo', 'assets/images/main-menu-evocell/main-menu-evocell.png');
         this.load.image('earth', 'assets/images/main-menu-evocell/earth.png');
         this.load.image('btnCampaign', 'assets/images/main-menu-evocell/campaign-btn.png');
         this.load.image('btnBack', 'assets/images/main-menu-evocell/back-btn.png');
