@@ -46,7 +46,7 @@ export default class BootScene extends Phaser.Scene {
         
         // Characters (3 role)
         this.load.image('prokaryotic', 'assets/images/cell-prokaryotic/prokaryotic-cell.png');
-        this.load.image('virus', 'assets/images/virus/virus.png');
+        this.load.image('virus', 'assets/images/virus/virus-magenta.png');
         this.load.image('wbc', 'assets/images/white-blood-cell/white-blood-cell.png');
         
         // Bacteria (untuk gameplay nanti)
