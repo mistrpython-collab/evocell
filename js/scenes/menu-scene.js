@@ -5,9 +5,12 @@ export default class MenuScene extends Phaser.Scene {
         this.selectedRole = 0;
         this.roles = ['prokaryotic', 'virus', 'wbc'];
         this.roleNames = ['Prokaryotic', 'Virus', 'White Blood Cell'];
+        console.log('MenuScene created');
     }
 
     create() {
+        console.log('MenuScene create started');
+        
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
@@ -65,7 +68,8 @@ export default class MenuScene extends Phaser.Scene {
         campaignBtn.on('pointerover', () => campaignBtn.setScale(0.75));
         campaignBtn.on('pointerout', () => campaignBtn.setScale(0.7));
         campaignBtn.on('pointerdown', () => {
-            alert('Game akan dimulai dengan role: ' + this.roleNames[this.selectedRole]);
+            console.log('Campaign button clicked - role:', this.roles[this.selectedRole]);
+            this.scene.start('ModeSelectScene', { role: this.roles[this.selectedRole] });
         });
         
         // Tombol Settings (pojok kiri atas, kecil)
@@ -79,6 +83,8 @@ export default class MenuScene extends Phaser.Scene {
         // Input keyboard (panah kiri/kanan)
         this.input.keyboard.on('keydown-LEFT', () => this.changeRole(-1));
         this.input.keyboard.on('keydown-RIGHT', () => this.changeRole(1));
+        
+        console.log('MenuScene create completed');
     }
     
     changeRole(direction) {
@@ -101,5 +107,7 @@ export default class MenuScene extends Phaser.Scene {
             yoyo: true,
             ease: 'Back.easeOut'
         });
+        
+        console.log('Role changed to:', this.roleNames[this.selectedRole]);
     }
 }

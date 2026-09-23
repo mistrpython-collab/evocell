@@ -2,13 +2,17 @@
 export default class ModeSelectScene extends Phaser.Scene {
     constructor() {
         super('ModeSelectScene');
+        console.log('ModeSelectScene created');
     }
 
     init(data) {
         this.selectedRole = data.role || 'prokaryotic';
+        console.log('ModeSelectScene init - role:', this.selectedRole);
     }
 
     create() {
+        console.log('ModeSelectScene create started');
+        
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
@@ -51,6 +55,7 @@ export default class ModeSelectScene extends Phaser.Scene {
         backButton.on('pointerover', () => backButton.setScale(0.65));
         backButton.on('pointerout', () => backButton.setScale(0.6));
         backButton.on('pointerdown', () => {
+            console.log('Back button clicked - returning to MenuScene');
             this.scene.start('MenuScene');
         });
         
@@ -61,6 +66,8 @@ export default class ModeSelectScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
+        
+        console.log('ModeSelectScene create completed');
     }
     
     createModeCard(x, y, title, description, color) {
@@ -133,6 +140,8 @@ export default class ModeSelectScene extends Phaser.Scene {
     startGame(isTutorial) {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
+        
+        console.log('Starting game - Tutorial:', isTutorial, 'Role:', this.selectedRole);
         
         this.add.text(width/2, height/2, 
             `Starting ${isTutorial ? 'Tutorial' : 'Game'}...\nRole: ${this.selectedRole}`, {
