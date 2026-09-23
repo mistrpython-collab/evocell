@@ -1,4 +1,4 @@
-// menu-scene.js - Updated
+// menu-scene.js - Main menu dengan LOGO GAMBAR EvoCell
 export default class MenuScene extends Phaser.Scene {
     constructor() {
         super('MenuScene');
@@ -16,12 +16,12 @@ export default class MenuScene extends Phaser.Scene {
         // Background gambar
         this.add.image(width/2, height/2, 'bgMain');
         
-        // LOGO GAMBAR (bukan text)
+        // LOGO GAMBAR EVOCELL (bukan text!)
         const logo = this.add.image(width/2, height/4 - 30, 'logo');
-        logo.setScale(0.7);
-        console.log('Logo image added');
+        logo.setScale(0.75);
+        console.log('Logo image loaded and displayed');
         
-        // Teks nama role
+        // Teks nama role di bawah logo
         this.roleText = this.add.text(width/2, height/2 - 130, this.roleNames[this.selectedRole], {
             font: '28px Arial',
             fill: '#ffffff',
@@ -60,7 +60,7 @@ export default class MenuScene extends Phaser.Scene {
         arrowRight.on('pointerover', () => arrowRight.setScale(1.2));
         arrowRight.on('pointerout', () => arrowRight.setScale(1));
         
-        // Tombol Campaign dengan gambar
+        // Tombol Campaign
         const campaignBtn = this.add.image(width/2, height - 150, 'btnCampaign');
         campaignBtn.setScale(0.75);
         campaignBtn.setInteractive({ useHandCursor: true });
