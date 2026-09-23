@@ -1,4 +1,4 @@
-// boot-scene.js
+// boot-scene.js - Load 2 logo berbeda
 export default class BootScene extends Phaser.Scene {
     constructor() {
         super('BootScene');
@@ -28,9 +28,10 @@ export default class BootScene extends Phaser.Scene {
             progressBar.fillRect(width/2 - 150, height/2, 300 * value, 30);
         });
         
-        // Load semua gambar - PATH YANG BENAR!
-        this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png'); // Background
-        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png'); // Logo colorful
+        // Load semua gambar
+        this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png');
+        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png'); // Untuk menu scene
+        this.load.image('introLogo', 'assets/images/main-menu-evocell/main-title-evocell.png'); // Untuk intro scene (ada virus & bakteri)
         this.load.image('earth', 'assets/images/main-menu-evocell/earth.png');
         this.load.image('btnCampaign', 'assets/images/main-menu-evocell/campaign-btn.png');
         this.load.image('btnBack', 'assets/images/main-menu-evocell/back-btn.png');
