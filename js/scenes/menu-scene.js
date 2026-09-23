@@ -18,7 +18,7 @@ export default class MenuScene extends Phaser.Scene {
         
         // LOGO GAMBAR EVOCELL (bukan text!)
         const logo = this.add.image(width/2, height/4 - 30, 'logo');
-        logo.setScale(0.75);
+logo.setScale(0.5);  // Lebih kecil lagi
         console.log('Logo image loaded and displayed');
         
         // Teks nama role di bawah logo
