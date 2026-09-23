@@ -1,8 +1,7 @@
-// mode-select-scene.js - Pilih mode Tutorial/Game
+// mode-select-scene.js - Mode selection dengan card frame batu
 export default class ModeSelectScene extends Phaser.Scene {
     constructor() {
         super('ModeSelectScene');
-        console.log('ModeSelectScene created');
     }
 
     init(data) {
@@ -20,75 +19,76 @@ export default class ModeSelectScene extends Phaser.Scene {
         this.add.image(width/2, height/2, 'bgMain');
         
         // Title
-        this.add.text(width/2, 100, 'SELECT MODE', {
+        this.add.text(width/2, 80, 'SELECT MODE', {
             font: '36px Arial',
-            fill: '#ffffff',
+            fill: '#00ff00',
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5);
         
-        // Tutorial Card (kiri)
-        const tutorialCard = this.createModeCard(
-            width/2 - 250,
-            height/2,
+        // CARD 1 - TUTORIAL (Kiri)
+        this.createModeCard(
+            width/2 - 280,
+            height/2 + 20,
             'TUTORIAL',
-            'Learn the basics',
-            0xffa500
+            'prokaryotic',
+            'Learn the basics'
         );
-        tutorialCard.on('pointerdown', () => this.startGame(true));
         
-        // Game Card (kanan)
-        const gameCard = this.createModeCard(
-            width/2 + 250,
-            height/2,
+        // CARD 2 - GAME (Kanan)
+        this.createModeCard(
+            width/2 + 280,
+            height/2 + 20,
             'GAME',
-            'Start playing',
-            0x00ff00
+            'prokaryotic',
+            'Start playing'
         );
-        gameCard.on('pointerdown', () => this.startGame(false));
         
         // Back Button
-        const backButton = this.add.image(80, 60, 'btnBack');
-        backButton.setScale(0.6);
+        const backButton = this.add.text(60, 60, 'Back', {
+            font: '24px Arial',
+            fill: '#00ffff',
+            backgroundColor: '#004444',
+            padding: { x: 20, y: 10 }
+        });
         backButton.setInteractive({ useHandCursor: true });
-        
-        backButton.on('pointerover', () => backButton.setScale(0.65));
-        backButton.on('pointerout', () => backButton.setScale(0.6));
+        backButton.on('pointerover', () => backButton.setStyle({ backgroundColor: '#006666' }));
+        backButton.on('pointerout', () => backButton.setStyle({ backgroundColor: '#004444' }));
         backButton.on('pointerdown', () => {
-            console.log('Back button clicked - returning to MenuScene');
+            console.log('Back button clicked');
             this.scene.start('MenuScene');
         });
-        
-        // Info role yang dipilih
-        this.add.text(width/2, height - 80, `Selected: ${this.selectedRole}`, {
-            font: '20px Arial',
-            fill: '#00ff00',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
         
         console.log('ModeSelectScene create completed');
     }
     
-    createModeCard(x, y, title, description, color) {
-        const cardWidth = 350;
-        const cardHeight = 300;
+    createModeCard(x, y, modeTitle, character, description) {
+        const cardWidth = 320;
+        const cardHeight = 420;
         
         const card = this.add.container(x, y);
         
-        // Card background
-        const bg = this.add.graphics();
-        bg.fillStyle(0x1a1a2e, 0.95);
-        bg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
-        bg.lineStyle(4, color);
-        bg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
-        card.add(bg);
+        // Frame batu (background gelap dengan border)
+        const frame = this.add.graphics();
+        frame.fillStyle(0x1a3a3a, 1);
+        frame.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+        frame.lineStyle(6, 0x666666);
+        frame.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
         
-        // Title
-        const titleText = this.add.text(0, -80, title, {
-            font: '32px Arial',
-            fill: color,
-            fontWeight: 'bold',
+        // Inner border (cyan)
+        frame.lineStyle(3, 0x00ffff);
+        frame.strokeRoundedRect(-cardWidth/2 + 5, -cardHeight/2 + 5, cardWidth - 10, cardHeight - 10, 15);
+        card.add(frame);
+        
+        // Character preview di dalam card
+        const charPreview = this.add.sprite(0, -80, character);
+        charPreview.setScale(3.5);
+        card.add(charPreview);
+        
+        // Mode title
+        const titleText = this.add.text(0, 120, modeTitle, {
+            font: 'bold 32px Arial',
+            fill: '#00ff00',
             stroke: '#000000',
             strokeThickness: 3
         });
@@ -96,41 +96,64 @@ export default class ModeSelectScene extends Phaser.Scene {
         card.add(titleText);
         
         // Description
-        const descText = this.add.text(0, 0, description, {
-            font: '20px Arial',
-            fill: '#cccccc'
+        const descText = this.add.text(0, 170, description, {
+            font: '18px Arial',
+            fill: '#aaaaaa',
+            align: 'center'
         });
         descText.setOrigin(0.5);
         card.add(descText);
         
-        // Icon
-        const icon = this.add.text(0, 80, '▶', {
-            font: '48px Arial',
-            fill: color
+        // Tombol PLAY
+        const playBtn = this.add.text(0, 230, 'PLAY', {
+            font: 'bold 28px Arial',
+            fill: '#ffffff',
+            backgroundColor: '#00aaaa',
+            padding: { x: 40, y: 12 }
         });
-        icon.setOrigin(0.5);
-        card.add(icon);
+        playBtn.setOrigin(0.5);
+        playBtn.setInteractive({ useHandCursor: true });
         
-        // Make interactive
+        playBtn.on('pointerover', () => {
+            playBtn.setStyle({ backgroundColor: '#00ffff' });
+            playBtn.setScale(1.1);
+        });
+        playBtn.on('pointerout', () => {
+            playBtn.setStyle({ backgroundColor: '#00aaaa' });
+            playBtn.setScale(1);
+        });
+        playBtn.on('pointerdown', () => {
+            console.log(modeTitle, 'mode selected');
+            this.startGame(modeTitle === 'TUTORIAL');
+        });
+        
+        card.add(playBtn);
+        
+        // Make entire card clickable
         card.setSize(cardWidth, cardHeight);
         card.setInteractive({ useHandCursor: true });
+        card.on('pointerdown', () => {
+            playBtn.emit('pointerdown');
+        });
         
-        // Hover effect
+        // Hover effect untuk card
         card.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0x2a2a3e, 0.95);
-            bg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
-            bg.lineStyle(6, color);
-            bg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
-            card.setScale(1.05);
+            frame.clear();
+            frame.fillStyle(0x2a4a4a, 1);
+            frame.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+            frame.lineStyle(8, 0x00ffff);
+            frame.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+            card.setScale(1.03);
         });
         
         card.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x1a1a2e, 0.95);
-            bg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
-            bg.lineStyle(4, color);
-            bg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 20);
+            frame.clear();
+            frame.fillStyle(0x1a3a3a, 1);
+            frame.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+            frame.lineStyle(6, 0x666666);
+            frame.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
+            frame.lineStyle(3, 0x00ffff);
+            frame.strokeRoundedRect(-cardWidth/2 + 5, -cardHeight/2 + 5, cardWidth - 10, cardHeight - 10, 15);
             card.setScale(1);
         });
         
