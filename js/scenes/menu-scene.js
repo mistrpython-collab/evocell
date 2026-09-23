@@ -65,7 +65,7 @@ export default class MenuScene extends Phaser.Scene {
         campaignBtn.on('pointerover', () => campaignBtn.setScale(0.75));
         campaignBtn.on('pointerout', () => campaignBtn.setScale(0.7));
         campaignBtn.on('pointerdown', () => {
-            this.scene.start('ModeSelectScene', { role: this.roles[this.selectedRole] });
+            alert('Game akan dimulai dengan role: ' + this.roleNames[this.selectedRole]);
         });
         
         // Tombol Settings (pojok kiri atas, kecil)

@@ -13,10 +13,9 @@ export default class IntroScene extends Phaser.Scene {
         
         // Earth di tengah (background logo)
         const earth = this.add.image(width/2, height/2, 'earth');
-        earth.setScale(0.9);
+        earth.setScale(0.7);
         
         // Animasi Earth (zoom in perlahan)
-        earth.setScale(0.7);
         this.tweens.add({
             targets: earth,
             scale: 0.95,

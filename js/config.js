@@ -1,9 +1,7 @@
 // config.js - Konfigurasi game Phaser
-import IntroScene from './scenes/intro-scene.js';
 import BootScene from './scenes/boot-scene.js';
+import IntroScene from './scenes/intro-scene.js';
 import MenuScene from './scenes/menu-scene.js';
-import RoleSelectScene from './scenes/role-select-scene.js';
-import ModeSelectScene from './scenes/mode-select-scene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -13,10 +11,8 @@ const config = {
     parent: 'game-container',
     scene: [
         BootScene,
-        IntroScene,      // <-- Intro scene ditambahkan di sini
-        MenuScene,
-        RoleSelectScene,
-        ModeSelectScene
+        IntroScene,
+        MenuScene
     ],
     physics: {
         default: 'arcade',
