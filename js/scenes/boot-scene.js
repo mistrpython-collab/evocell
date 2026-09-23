@@ -1,4 +1,4 @@
-// boot-scene.js - Pastikan logo di-load
+// boot-scene.js
 export default class BootScene extends Phaser.Scene {
     constructor() {
         super('BootScene');
@@ -28,9 +28,9 @@ export default class BootScene extends Phaser.Scene {
             progressBar.fillRect(width/2 - 150, height/2, 300 * value, 30);
         });
         
-        // Load semua gambar
-        this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png');
-        this.load.image('logo', 'assets/images/main-menu-evocell/main-menu-evocell.png');
+        // Load semua gambar - PATH YANG BENAR!
+        this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png'); // Background
+        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png'); // Logo colorful
         this.load.image('earth', 'assets/images/main-menu-evocell/earth.png');
         this.load.image('btnCampaign', 'assets/images/main-menu-evocell/campaign-btn.png');
         this.load.image('btnBack', 'assets/images/main-menu-evocell/back-btn.png');
