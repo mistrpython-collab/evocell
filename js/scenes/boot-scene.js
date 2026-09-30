@@ -45,6 +45,10 @@ export default class BootScene extends Phaser.Scene {
         // Card & Button
 this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');
 this.load.image('btnPlay', 'assets/images/main-menu-evocell/play-button.png');
+// ===== TOMBOL PAUSE MENU (BARU) =====
+this.load.image('pause-btn', 'assets/images/main-menu-evocell/pause-btn.png');
+this.load.image('resume-btn', 'assets/images/main-menu-evocell/resume-btn.png');
+this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
     }
 
     create() {
