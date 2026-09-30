@@ -108,9 +108,14 @@ export default class ModeSelectScene extends Phaser.Scene {
       playBtn.setScale(0.13);
     });
     playBtn.on("pointerdown", () => {
-      console.log(modeTitle, "mode selected");
-      this.startGame(modeTitle === "TUTORIAL");
-    });
+  console.log(modeTitle, "mode selected");
+  // Arahkan ke ProkaryoticGame
+  this.scene.start("ProkaryoticGame", {
+    role: character,
+    mode: modeTitle === "Misi 1" ? "tutorial" : "game",
+    mission: modeTitle
+  });
+});
 
     card.add(playBtn);
 
@@ -122,55 +127,14 @@ export default class ModeSelectScene extends Phaser.Scene {
     });
 
     // Hover effect untuk card
-    card.on("pointerover", () => {
-      frame.clear();
-      frame.fillStyle(0x2a4a4a, 1);
-      frame.fillRoundedRect(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth,
-        cardHeight,
-        15,
-      );
-      frame.lineStyle(8, 0x00ffff);
-      frame.strokeRoundedRect(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth,
-        cardHeight,
-        15,
-      );
-      card.setScale(1.03);
-    });
+    // Hover effect untuk card (hanya scale, karena sudah pakai gambar cardRock)
+card.on('pointerover', () => {
+    card.setScale(1.03);
+});
 
-    card.on("pointerout", () => {
-      frame.clear();
-      frame.fillStyle(0x1a3a3a, 1);
-      frame.fillRoundedRect(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth,
-        cardHeight,
-        15,
-      );
-      frame.lineStyle(6, 0x666666);
-      frame.strokeRoundedRect(
-        -cardWidth / 2,
-        -cardHeight / 2,
-        cardWidth,
-        cardHeight,
-        15,
-      );
-      frame.lineStyle(3, 0x00ffff);
-      frame.strokeRoundedRect(
-        -cardWidth / 2 + 5,
-        -cardHeight / 2 + 5,
-        cardWidth - 10,
-        cardHeight - 10,
-        15,
-      );
-      card.setScale(1);
-    });
+card.on('pointerout', () => {
+    card.setScale(1);
+});
 
     return card;
   }
