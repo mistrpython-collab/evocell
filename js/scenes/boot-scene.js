@@ -52,6 +52,6 @@ this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
     }
 
     create() {
-        this.scene.start('MenuScene'); // IntroScene atau MenuScene
+        this.scene.start('IntroScene'); // IntroScene atau MenuScene
     }
 }
