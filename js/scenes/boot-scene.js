@@ -8,7 +8,7 @@ export default class BootScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        const loadingText = this.add.text(width/2, height/2 - 50, 'Loading EvoCell...', {
+        const loadingText = this.add.text(width/2, height/2 - 50, 'Memuat EvoCell...', {
             font: '28px Arial',
             fill: '#00ffff',
             stroke: '#000000',

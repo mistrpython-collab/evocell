@@ -1,4 +1,4 @@
-// prokaryotic-game.js - LENGKAP: Boss Kuning Fixed (Berkedip Berulang + Warning Dash + Dash Pendek)
+// prokaryotic-game.js - LENGKAP: 3 Boss + Cursor Smooth + Dash Jauh + Shooter 4 Bola + Chaser Nembak
 export default class ProkaryoticGame extends Phaser.Scene {
     constructor() {
         super('ProkaryoticGame');
@@ -15,15 +15,15 @@ export default class ProkaryoticGame extends Phaser.Scene {
             this.ENEMY_SPEED_MULT = 0.8;
             this.BOSS_MODE = false;
         } else if (this.mission === 'Misi 2') {
-            this.WIN_SCORE = 20000;
+            this.WIN_SCORE = 15000;
             this.SPAWN_DELAY = 250;
             this.ENEMY_SPEED_MULT = 1.3;
             this.BOSS_MODE = true;
             this.BOSS1_SPAWN_SCORE = 500;
             this.BOSS1_KILL_SCORE = 1500;
             this.BOSS2_KILL_SCORE = 3000;
-            this.BOSS3_KILL_SCORE = 15000;
-            this.BOSS3_PHASE2_KILL_SCORE = 20000;
+            this.BOSS3_KILL_SCORE = 10000;
+            this.BOSS3_PHASE2_KILL_SCORE = 15000;
         } else {
             this.WIN_SCORE = 1500;
             this.SPAWN_DELAY = 400;
@@ -63,7 +63,6 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.boss3Phase2 = false;
         this.pauseMenuContainer = null;
         this.pauseButton = null;
-        this.dashWarningText = null; // Text warning dash
         
         this.add.text(30, 30, 'PROKARYOTIC', {
             font: 'bold 28px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 4
@@ -189,12 +188,10 @@ export default class ProkaryoticGame extends Phaser.Scene {
 
     spawnBacteria() {
         if (this.isPaused || this.isGameOver) return;
-        
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         const side = Phaser.Math.Between(0, 3);
         let x, y;
-        
         if (side === 0) { x = -80; y = Phaser.Math.Between(80, height - 80); }
         else if (side === 1) { x = width + 80; y = Phaser.Math.Between(80, height - 80); }
         else if (side === 2) { x = Phaser.Math.Between(80, width - 80); y = -80; }
@@ -205,7 +202,6 @@ export default class ProkaryoticGame extends Phaser.Scene {
             this.boss1Spawned = true;
             return;
         }
-        
         const sizeLevel = this.getBacteriaSizeLevel();
         this.enemies.add(new Bacteria(this, x, y, sizeLevel, this.ENEMY_SPEED_MULT));
     }
@@ -227,7 +223,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
         const height = this.cameras.main.height;
         this.boss2 = new BossBacteriaPurple(this, width/2, -150, this);
         this.enemies.add(this.boss2);
-        const bossAlert = this.add.text(width/2, height/2, '️ BOSS 2 APPEARS! ️\nPurple Shooter - Reach 3000 to Kill!', {
+        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 2 APPEARS! ⚠️\nPurple Shooter - Reach 3000 to Kill!', {
             font: 'bold 48px Arial', fill: '#9900ff', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
@@ -247,7 +243,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
             this.boss3 = new BossBacteriaYellow(this, width/2, height/2, this);
             this.enemies.add(this.boss3);
             this.cameras.main.shake(500, 0.02);
-            const bossAlert = this.add.text(width/2, height/2 - 200, 'YELLOW BERSERKER\nReach 15000 to Kill!', {
+            const bossAlert = this.add.text(width/2, height/2 - 200, 'YELLOW BERSERKER\nReach 10000 to Kill!', {
                 font: 'bold 48px Arial', fill: '#ffff00', stroke: '#000000', strokeThickness: 8, align: 'center'
             }).setOrigin(0.5).setDepth(25);
             this.time.delayedCall(3000, () => bossAlert.destroy());
@@ -262,7 +258,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.boss3Chaser = new BossBacteriaYellowChaser(this, width * 2/3, height/2, this);
         this.enemies.add(this.boss3Chaser);
         this.boss3Phase2 = true;
-        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 20000 to Kill Both!', {
+        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 15000 to Kill Both!', {
             font: 'bold 48px Arial', fill: '#ffaa00', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
@@ -441,7 +437,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
     }
 }
 
-// ===== CLASS PLAYER =====
+// ===== CLASS PLAYER - ULTIMATE SMOOTH CURSOR MOVEMENT =====
 class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'prokaryotic');
@@ -456,6 +452,9 @@ class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
         this.updateBody();
         this.setCollideWorldBounds(true);
         this.setDepth(5);
+        this.currentSpeed = 0;
+        this.acceleration = 18;
+        this.deceleration = 15;
     }
 
     updateBody() {
@@ -471,12 +470,22 @@ class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
         const distance = Math.sqrt(dx * dx + dy * dy);
         if (dx > 10 && !this.isFlipped) { this.setFlipX(true); this.isFlipped = true; }
         else if (dx < -10 && this.isFlipped) { this.setFlipX(false); this.isFlipped = false; }
-        if (distance < 30) { this.body.setVelocity(0, 0); return; }
-        const minSpeed = 60;
-        const maxSpeed = this.baseSpeed;
-        const speedFactor = Math.min(distance / 200, 1);
-        const speed = minSpeed + (maxSpeed - minSpeed) * speedFactor;
-        this.body.setVelocity((dx / distance) * speed, (dy / distance) * speed);
+        if (distance < 5) { this.body.setVelocity(0, 0); this.currentSpeed = 0; return; }
+        
+        let targetSpeed;
+        if (distance > 150) targetSpeed = this.baseSpeed;
+        else if (distance > 50) targetSpeed = this.baseSpeed * 0.85;
+        else targetSpeed = 120;
+        
+        if (this.currentSpeed < targetSpeed) {
+            this.currentSpeed = Math.min(this.currentSpeed + this.acceleration, targetSpeed);
+        } else {
+            this.currentSpeed = Math.max(this.currentSpeed - this.deceleration, targetSpeed);
+        }
+        
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        this.body.setVelocity(dirX * this.currentSpeed, dirY * this.currentSpeed);
     }
 
     grow() {
@@ -484,14 +493,7 @@ class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
         if (this.cellSize > 2.5) this.cellSize = 2.5;
         this.setScale(this.baseScale * this.cellSize);
         this.updateBody();
-        this.scene.tweens.add({
-            targets: this,
-            scaleX: this.scaleX * 1.1,
-            scaleY: this.scaleY * 1.1,
-            duration: 100,
-            yoyo: true,
-            ease: 'Back.easeOut'
-        });
+        this.scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.1, scaleY: this.scaleY * 1.1, duration: 100, yoyo: true, ease: 'Back.easeOut' });
     }
 }
 
@@ -644,7 +646,7 @@ class BossBacteriaPurple extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BOSS 3 - BAKTERI KUNING "BERSERKER" (FIXED: Berkedip Berulang + Warning Dash + Dash Pendek) =====
+// ===== CLASS BOSS 3 - BAKTERI KUNING "BERSERKER" =====
 class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, gameScene) {
         super(scene, x, y, 'bacteria');
@@ -678,16 +680,14 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
         this.wobbleAngle = 0;
         this.dashTrail = null;
         this.dashDirection = 0;
-        this.dashWarningText = null; // Text warning dash
+        this.dashWarningText = null;
         scene.cameras.main.shake(500, 0.03);
         scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.5, scaleY: this.scaleY * 1.5, duration: 800, yoyo: true, ease: 'Back.easeOut' });
     }
-
     updateAI() {
         if (!this.body || !this.active) return;
         const currentTime = Date.now();
         const timeSinceSpawn = currentTime - this.initialPhaseStartTime;
-        
         if (this.initialPhase) {
             const player = this.gameScene.player;
             if (player && player.active) {
@@ -715,18 +715,11 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
             }
             return;
         }
-        
         if (this.isDashing) { this.updateDash(); return; }
         if (this.isRecovering) { this.updateRecovery(); return; }
-        
         const timeSinceLastDash = currentTime - this.lastDashTime;
-        
-        // Charging dimulai 2 detik setelah dash terakhir
         if (timeSinceLastDash >= 2000 && !this.isCharging) { this.startCharging(); }
-        
-        // Dash setelah 5 detik
         if (timeSinceLastDash >= this.dashCooldown && this.isCharging) { this.startDash(); }
-        
         if (!this.isCharging) {
             this.wobbleAngle += 0.05;
             const wobbleX = Math.sin(this.wobbleAngle) * 0.3;
@@ -751,75 +744,41 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
             if (this.y < margin) { this.y = margin; this.direction = -this.direction; }
             else if (this.y > height - margin) { this.y = height - margin; this.direction = -this.direction; }
         } else {
-            // CHARGING: DIAM TOTAL + BERKEDIP
             this.body.setVelocity(0, 0);
         }
     }
-
-    // ✅ FIX: Berkedip BERULANG (repeat: -1) sampai dash dimulai
     startCharging() {
         this.isCharging = true;
         this.body.setVelocity(0, 0);
-        
         if (this.blinkTween) { this.blinkTween.stop(); }
-        
-        // ✅ repeat: -1 = berkedip terus menerus sampai di-stop
         this.blinkTween = this.scene.tweens.addCounter({
-            from: 0,
-            to: 1,
-            duration: 200, // Cepat: 200ms per kedipan
-            repeat: -1,    // ✅ BERULANG TERUS!
-            yoyo: true,    // Bolak-balik kuning-merah
+            from: 0, to: 1, duration: 200, repeat: -1, yoyo: true,
             onUpdate: (tween) => {
                 if (!this.active) return;
                 const val = tween.getValue();
                 this.setTint(val > 0.5 ? 0xFF0000 : 0xFFFF00);
             }
         });
-        
-        // ✅ Tampilkan text warning "⚠️ DASH INCOMING!" di atas boss
         if (!this.dashWarningText) {
             this.dashWarningText = this.scene.add.text(this.x, this.y - 100, '⚠️ DASH INCOMING!', {
-                font: 'bold 28px Arial',
-                fill: '#ff0000',
-                stroke: '#000000',
-                strokeThickness: 4
+                font: 'bold 28px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 4
             }).setOrigin(0.5).setDepth(20);
         }
         this.dashWarningText.setPosition(this.x, this.y - 100);
         this.dashWarningText.visible = true;
-        
-        // Text berkedip juga
-        this.scene.tweens.add({
-            targets: this.dashWarningText,
-            alpha: 0.3,
-            duration: 200,
-            yoyo: true,
-            repeat: -1
-        });
+        this.scene.tweens.add({ targets: this.dashWarningText, alpha: 0.3, duration: 200, yoyo: true, repeat: -1 });
     }
-
-    // ✅ FIX: Dash lebih pendek (250ms) + stop kedipan + hapus warning
     startDash() {
         this.isCharging = false;
         this.isDashing = true;
         this.isRecovering = false;
         this.currentSpeed = this.dashSpeed;
         this.lastDashTime = Date.now();
-        
-        // Stop kedipan charging
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
-        
-        // Hapus text warning
-        if (this.dashWarningText) {
-            this.dashWarningText.visible = false;
-        }
-        
+        if (this.dashWarningText) { this.dashWarningText.visible = false; }
         const player = this.gameScene.player;
         if (player && player.active) { this.dashDirection = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y); }
         this.direction = this.dashDirection;
-        
-        // Berkedip cepat saat dash
         if (this.dashBlinkTween) { this.dashBlinkTween.stop(); }
         this.dashBlinkTween = this.scene.tweens.addCounter({
             from: 0, to: 1, duration: 50, repeat: -1, yoyo: true,
@@ -829,12 +788,11 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
                 this.setTint(val > 0.5 ? 0xFF0000 : 0xFFFF00);
             }
         });
-        
         this.scene.cameras.main.shake(300, 0.02);
         this.dashTrail = this.scene.add.graphics().setDepth(3);
         
-        // ✅ Dash duration 250ms (lebih pendek dari 400ms)
-        this.scene.time.delayedCall(250, () => {
+        // ✅ UPDATE: Dash duration dinaikkan dari 250ms ke 450ms agar jarak dash lebih jauh
+        this.scene.time.delayedCall(450, () => {
             if (this.active) {
                 this.isDashing = false;
                 this.isRecovering = true;
@@ -846,7 +804,6 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
             }
         });
     }
-
     updateDash() {
         this.body.setVelocity(Math.cos(this.dashDirection) * this.currentSpeed, Math.sin(this.dashDirection) * this.currentSpeed);
         this.setFlipX(Math.cos(this.dashDirection) > 0);
@@ -859,8 +816,6 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
         if (this.y < margin) { this.y = margin; this.dashDirection = -this.dashDirection; this.direction = this.dashDirection; }
         else if (this.y > height - margin) { this.y = height - margin; this.dashDirection = -this.dashDirection; this.direction = this.dashDirection; }
     }
-
-    // ✅ FIX: Reset lastDashTime saat recovery selesai agar ada jeda normal sebelum charging lagi
     updateRecovery() {
         const player = this.gameScene.player;
         if (player && player.active) {
@@ -882,16 +837,13 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
         else if (this.x > width - margin) { this.x = width - margin; this.direction = Math.PI - this.direction; }
         if (this.y < margin) { this.y = margin; this.direction = -this.direction; }
         else if (this.y > height - margin) { this.y = height - margin; this.direction = -this.direction; }
-        
         const timeSinceLastDash = Date.now() - this.lastDashTime;
         if (timeSinceLastDash >= 7800) {
             this.isRecovering = false;
             this.currentSpeed = this.normalSpeed;
-            // ✅ RESET lastDashTime agar ada jeda normal sebelum charging lagi
             this.lastDashTime = Date.now();
         }
     }
-
     destroy() {
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         if (this.dashBlinkTween) { this.dashBlinkTween.stop(); this.dashBlinkTween = null; }
@@ -901,7 +853,7 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BOSS 3 PHASE 2 - SHOOTER =====
+// ===== CLASS BOSS 3 PHASE 2 - SHOOTER (4 BOLA SEKALIGUS) =====
 class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, gameScene) {
         super(scene, x, y, 'bacteria');
@@ -957,26 +909,45 @@ class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
             onComplete: () => { if (this.active) this.setTint(0xFF0000); }
         });
     }
+    
+    // ✅ UPDATE: Tembak 4 bola sekaligus dengan pola penyebaran (spread shot)
     shoot() {
         this.isCharging = false;
         this.lastShootTime = Date.now();
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         this.setTint(0xFFDD00);
+        
         const player = this.gameScene.player;
         if (player && player.active) {
-            const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-            const projectile = new YellowBall(this.scene, this.x, this.y, angle);
-            this.gameScene.projectiles.add(projectile);
+            const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+            const spread = 0.25; // Sudut penyebaran (~14 derajat)
+            
+            // Bola 1: Paling kiri
+            const proj1 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 1.5);
+            this.gameScene.projectiles.add(proj1);
+            
+            // Bola 2: Kiri tengah
+            const proj2 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 0.5);
+            this.gameScene.projectiles.add(proj2);
+            
+            // Bola 3: Kanan tengah
+            const proj3 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 0.5);
+            this.gameScene.projectiles.add(proj3);
+            
+            // Bola 4: Paling kanan
+            const proj4 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 1.5);
+            this.gameScene.projectiles.add(proj4);
         }
         this.scene.cameras.main.shake(100, 0.01);
     }
+
     destroy() {
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         super.destroy();
     }
 }
 
-// ===== CLASS BOSS 3 PHASE 2 - CHASER =====
+// ===== CLASS BOSS 3 PHASE 2 - CHASER (TEMBAK 1 BOLA, SANGAT LAMBAT) =====
 class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, gameScene) {
         super(scene, x, y, 'bacteria');
@@ -985,17 +956,38 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         this.gameScene = gameScene;
         this.sizeLevel = 5;
         this.scoreValue = 2000;
-        this.moveSpeed = 110;
+        this.moveSpeed = 140; 
         this.setScale(1.5);
         this.setTint(0xFFAA00);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
         this.radius = 35;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
+        
+        // ✅ Tambahan: Kemampuan menembak sangat lambat
+        this.shootCooldown = 8000; // 8 detik reload (sangat lambat)
+        this.lastShootTime = Date.now();
+        this.isCharging = false;
+        this.blinkTween = null;
+        
         scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.3, scaleY: this.scaleY * 1.3, duration: 600, yoyo: true, ease: 'Back.easeOut' });
     }
     updateAI() {
         if (!this.body || !this.active) return;
+        
+        // ✅ Logika menembak lambat
+        const currentTime = Date.now();
+        const timeSinceLastShoot = currentTime - this.lastShootTime;
+        
+        // Mulai charging 2 detik sebelum tembak (peringatan)
+        if (timeSinceLastShoot >= 6000 && !this.isCharging) { 
+            this.startCharging(); 
+        }
+        // Tembak setelah 8 detik
+        if (timeSinceLastShoot >= this.shootCooldown && this.isCharging) { 
+            this.shoot(); 
+        }
+        
         const player = this.gameScene.player;
         if (player && player.active) {
             const angleToPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
@@ -1010,6 +1002,41 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
         if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) { this.direction += Math.PI; }
+    }
+    
+    startCharging() {
+        this.isCharging = true;
+        if (this.blinkTween) { this.blinkTween.stop(); }
+        this.blinkTween = this.scene.tweens.addCounter({
+            from: 0, to: 10, duration: 2000, repeat: 0,
+            onUpdate: (tween) => {
+                if (!this.active) return;
+                const val = Math.floor(tween.getValue());
+                this.setTint(val % 2 === 0 ? 0xFFAA00 : 0xFF0000); // Berkedip orange-merah
+            },
+            onComplete: () => { if (this.active) this.setTint(0xFF0000); }
+        });
+    }
+    
+    shoot() {
+        this.isCharging = false;
+        this.lastShootTime = Date.now();
+        if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
+        this.setTint(0xFFAA00);
+        
+        const player = this.gameScene.player;
+        if (player && player.active) {
+            const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+            // Hanya tembak 1 bola
+            const projectile = new YellowBall(this.scene, this.x, this.y, angle);
+            this.gameScene.projectiles.add(projectile);
+        }
+        this.scene.cameras.main.shake(100, 0.01);
+    }
+
+    destroy() {
+        if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
+        super.destroy();
     }
 }
 

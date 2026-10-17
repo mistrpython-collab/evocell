@@ -4,11 +4,11 @@ export default class MenuScene extends Phaser.Scene {
         super('MenuScene');
         this.selectedRole = 0;
         this.roles = ['prokaryotic', 'virus', 'wbc'];
-        this.roleNames = ['Prokaryotic', 'Virus', 'White Blood Cell'];
+        this.roleNames = ['Prokaryotic', 'Virus', 'Sel Darah Putih'];
     }
 
     create() {
-        console.log('MenuScene create - rendering...');
+        console.log('MenuScene dibuat - merender...');
         
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;

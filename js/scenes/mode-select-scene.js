@@ -18,7 +18,7 @@ export default class ModeSelectScene extends Phaser.Scene {
         this.add.image(width / 2, height / 2, "bgMain");
 
         // Title
-        this.add.text(width / 2, 80, "Campaign", {
+        this.add.text(width / 2, 80, "Kampanye", {
             font: "36px Arial",
             fill: "#00ff00",
             stroke: "#000000",
