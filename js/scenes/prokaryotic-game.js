@@ -546,7 +546,7 @@ class BossBacteriaRed extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFF00FF);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
-        this.radius = 35;
+        this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         scene.cameras.main.shake(500, 0.02);
         scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.3, scaleY: this.scaleY * 1.3, duration: 600, yoyo: true, ease: 'Back.easeOut' });
@@ -584,7 +584,7 @@ class BossBacteriaPurple extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0x9900FF);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
-        this.radius = 45;
+        this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         this.shootCooldown = 5000;
         this.lastShootTime = Date.now();
@@ -668,7 +668,7 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFFFF00);
         this.setDepth(4);
         this.direction = Math.random() * Math.PI * 2;
-        this.radius = 55;
+        this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         this.isCharging = false;
         this.isDashing = false;
@@ -867,7 +867,7 @@ class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFFDD00);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
-        this.radius = 40;
+        this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         this.shootCooldown = 5000;
         this.lastShootTime = Date.now();
@@ -961,7 +961,7 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFFAA00);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
-        this.radius = 35;
+        this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         
         // ✅ Tambahan: Kemampuan menembak sangat lambat
