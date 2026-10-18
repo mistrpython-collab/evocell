@@ -1,4 +1,4 @@
-// virus-game.js - Gameplay Virus (Dash 400px)
+// virus-game.js - Gameplay Virus (Dash Bisa Infect)
 export default class VirusGame extends Phaser.Scene {
     constructor() {
         super('VirusGame');
@@ -47,7 +47,7 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 24px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 3
         }).setDepth(10);
         
-        this.timerText = this.add.text(30, 100, '⏱️ 5s', {
+        this.timerText = this.add.text(30, 100, '️ 5s', {
             font: 'bold 28px Arial', 
             fill: '#00ffff',
             stroke: '#000000', 
@@ -79,7 +79,7 @@ export default class VirusGame extends Phaser.Scene {
             loop: true
         });
         
-        this.physics.add.overlap(this.player, this.wbcs, this.handleInfection, null, this);
+        this.physics.add.overlap(this.player, this.wbcs, this.handleCollision, null, this);
         
         this.time.addEvent({
             delay: 1000,
@@ -163,7 +163,8 @@ export default class VirusGame extends Phaser.Scene {
         return 3;
     }
 
-    handleInfection(virus, wbc) {
+    // ✅ HANDLE COLLISION - Bisa infect saat dash ATAU gerakan lambat
+    handleCollision(virus, wbc) {
         if (this.isGameOver || this.isPaused || !wbc.active) return;
         
         const scoreValue = wbc.scoreValue;
@@ -175,9 +176,11 @@ export default class VirusGame extends Phaser.Scene {
         this.createInfectionParticles(wbc.x, wbc.y);
         wbc.destroy();
         
+        // ✅ TELEPORT ke posisi WBC (baik saat dash maupun tidak)
         virus.setPosition(wbc.x, wbc.y);
         virus.lastInfectionTime = Date.now();
         
+        // Reset movement dan dash
         virus.isDashing = false;
         if (virus.blinkTween) {
             virus.blinkTween.stop();
@@ -308,7 +311,7 @@ export default class VirusGame extends Phaser.Scene {
     }
 }
 
-// ===== CLASS VIRUS CELL (Dash 400px) =====
+// ===== CLASS VIRUS CELL =====
 class VirusCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'virus');
@@ -334,7 +337,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.initialSpeed = 130;
         
         this.normalSpeed = 40;
-        this.dashSpeed = 500; // Speed tetap 500
+        this.dashSpeed = 500;
         this.currentSpeed = this.initialSpeed;
         
         this.direction = Math.random() * Math.PI * 2;
@@ -446,7 +449,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         });
         
         if (!this.dashWarningText) {
-            this.dashWarningText = this.scene.add.text(this.x, this.y - 50, '⚠️ DASH!', {
+            this.dashWarningText = this.scene.add.text(this.x, this.y - 50, '️ DASH!', {
                 font: 'bold 32px Arial',
                 fill: '#ff0000',
                 stroke: '#000000',
@@ -476,7 +479,6 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         const dy = this.targetY - this.y;
         const angle = Math.atan2(dy, dx);
         
-        // ✅ LASER 400px (sesuai jarak dash)
         const laserLength = 400;
         
         const endX = this.x + Math.cos(angle) * laserLength;
@@ -506,7 +508,6 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         const dy = this.targetY - this.y;
         const angle = Math.atan2(dy, dx);
         
-        // ✅ LASER 400px
         const laserLength = 400;
         
         const endX = this.x + Math.cos(angle) * laserLength;
@@ -556,7 +557,6 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFF4400);
         this.dashTrail = this.scene.add.graphics().setDepth(3);
         
-        // ✅ DASH 800ms (500 speed × 0.8s = 400px)
         this.scene.time.delayedCall(800, () => {
             if (this.active) {
                 this.isDashing = false;
@@ -655,7 +655,7 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
         this.setTint(tint);
         this.setDepth(3);
         
-        this.radius = scale * 65;
+        this.radius = scale * 50;
         this.body.setCircle(this.radius);
         
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
