@@ -1,9 +1,9 @@
-// boot-scene.js - Load 2 logo berbeda
+// boot-scene.js - Load semua aset game
 export default class BootScene extends Phaser.Scene {
     constructor() {
         super('BootScene');
     }
-
+    
     preload() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -21,7 +21,6 @@ export default class BootScene extends Phaser.Scene {
         progressBox.fillRect(width/2 - 160, height/2 - 10, 320, 50);
         
         const progressBar = this.add.graphics();
-        
         this.load.on('progress', (value) => {
             progressBar.clear();
             progressBar.fillStyle(0x00ff00, 1);
@@ -30,8 +29,8 @@ export default class BootScene extends Phaser.Scene {
         
         // Load semua gambar
         this.load.image('bgMain', 'assets/images/main-menu-evocell/main-menu-evocell.png');
-        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png'); // Untuk menu scene
-        this.load.image('introLogo', 'assets/images/main-menu-evocell/main-title-evocell.png'); // Untuk intro scene (ada virus & bakteri)
+        this.load.image('logo', 'assets/images/main-menu-evocell/evocell-trans.png');
+        this.load.image('introLogo', 'assets/images/main-menu-evocell/main-title-evocell.png');
         this.load.image('earth', 'assets/images/main-menu-evocell/earth.png');
         this.load.image('btnCampaign', 'assets/images/main-menu-evocell/campaign-btn.png');
         this.load.image('btnBack', 'assets/images/main-menu-evocell/back-btn.png');
@@ -41,17 +40,17 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('wbc', 'assets/images/white-blood-cell/one-white-blood-cell.png');
         this.load.image('bacteria', 'assets/images/bacteria/one-bacteria-green.png');
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
+        this.load.image('bgVirus', 'assets/images/scene-evocell/blood-vessel.png'); // ✅ TAMBAH INI
         
         // Card & Button
-this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');
-this.load.image('btnPlay', 'assets/images/main-menu-evocell/play-button.png');
-// ===== TOMBOL PAUSE MENU (BARU) =====
-this.load.image('pause-btn', 'assets/images/main-menu-evocell/pause-btn.png');
-this.load.image('resume-btn', 'assets/images/main-menu-evocell/resume-btn.png');
-this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
+        this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');
+        this.load.image('btnPlay', 'assets/images/main-menu-evocell/play-button.png');
+        this.load.image('pause-btn', 'assets/images/main-menu-evocell/pause-btn.png');
+        this.load.image('resume-btn', 'assets/images/main-menu-evocell/resume-btn.png');
+        this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
     }
-
+    
     create() {
-        this.scene.start('IntroScene'); // IntroScene atau MenuScene
+        this.scene.start('IntroScene');
     }
 }
