@@ -1,4 +1,4 @@
-// virus-game.js - Gameplay Virus (NO WARNING, Background Fixed)
+// virus-game.js - Gameplay Virus (Dash 400px)
 export default class VirusGame extends Phaser.Scene {
     constructor() {
         super('VirusGame');
@@ -10,9 +10,8 @@ export default class VirusGame extends Phaser.Scene {
         this.mission = data.mission || 'Misi 1';
         
         this.WIN_SCORE = 2500;
-        this.WBC_SPAWN_DELAY = 450;
-        this.MAX_ALLIES = 15;
-        this.INFECTION_COOLDOWN = 7000;
+        this.WBC_SPAWN_DELAY = 550;
+        this.INFECTION_COOLDOWN = 5000;
         this.DAMAGE_PER_TICK = 1;
     }
 
@@ -20,28 +19,22 @@ export default class VirusGame extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 1. BACKGROUND - Pastikan muncul
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
             bg.setDepth(0);
-            bg.setDisplaySize(width, height); // Paksa full screen
-            console.log('Background virus loaded successfully');
+            bg.setDisplaySize(width, height);
         } catch (e) {
-            console.log('Background virus tidak load, pakai rectangle merah');
             this.add.rectangle(width/2, height/2, width, height, 0x660000).setDepth(0);
         }
         
-        // 2. VARIABEL GAME
         this.player = null;
         this.wbcs = this.add.group();
-        this.allies = [];
         this.score = 0;
         this.isGameOver = false;
         this.isPaused = false;
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         
-        // 3. UI
         this.add.text(30, 30, 'VIRUS', {
             font: 'bold 28px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
@@ -54,19 +47,19 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 24px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 3
         }).setDepth(10);
         
-        this.alliesText = this.add.text(30, 100, `Virus Allies: 0/${this.MAX_ALLIES}`, {
-            font: 'bold 20px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 3
+        this.timerText = this.add.text(30, 100, '⏱️ 5s', {
+            font: 'bold 28px Arial', 
+            fill: '#00ffff',
+            stroke: '#000000', 
+            strokeThickness: 4
         }).setDepth(10);
         
-        // ✅ HAPUS WARNING TEXT - Tidak perlu lagi
-        
-        // 4. PLAYER
         this.player = new VirusCell(this, width/2, height/2);
         
-        // 5. KONTROL
         this.input.on('pointermove', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
-                this.player.moveToPointer(pointer);
+                this.player.targetX = pointer.x;
+                this.player.targetY = pointer.y;
             }
         });
         
@@ -79,7 +72,6 @@ export default class VirusGame extends Phaser.Scene {
         });
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         
-        // 6. SPAWN SYSTEM
         this.time.addEvent({
             delay: this.WBC_SPAWN_DELAY,
             callback: this.spawnWBC,
@@ -87,10 +79,8 @@ export default class VirusGame extends Phaser.Scene {
             loop: true
         });
         
-        // 7. COLLISION
         this.physics.add.overlap(this.player, this.wbcs, this.handleInfection, null, this);
         
-        // 8. TIMER CHECK (setiap 1 detik)
         this.time.addEvent({
             delay: 1000,
             callback: this.checkDamage,
@@ -98,7 +88,6 @@ export default class VirusGame extends Phaser.Scene {
             loop: true
         });
         
-        // 9. TOMBOL PAUSE
         const pauseBtnSize = 150;
         const pauseBtnMargin = 50;
         this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
@@ -109,7 +98,6 @@ export default class VirusGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        // 10. NOTIFIKASI
         const missionText = this.add.text(width/2, height/2, 'MISI VIRUS\nInfeksi Sel untuk Bertahan!', {
             font: 'bold 48px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
@@ -123,17 +111,32 @@ export default class VirusGame extends Phaser.Scene {
             if (wbc && wbc.active) wbc.updateAI();
         });
         
-        this.updateAlliesFormation();
+        this.player.updateAI();
+        this.updateTimerDisplay();
+    }
+
+    updateTimerDisplay() {
+        const now = Date.now();
+        const timeSinceInfection = now - this.player.lastInfectionTime;
+        const timeRemaining = Math.max(0, this.INFECTION_COOLDOWN - timeSinceInfection);
+        const secondsLeft = Math.ceil(timeRemaining / 1000);
         
-        const speed = 320;
-        let vx = 0, vy = 0;
-        if (this.cursors.left.isDown || this.wasd.left.isDown) { vx = -speed; this.player.setFlipX(true); }
-        if (this.cursors.right.isDown || this.wasd.right.isDown) { vx = speed; this.player.setFlipX(false); }
-        if (this.cursors.up.isDown || this.wasd.up.isDown) vy = -speed;
-        if (this.cursors.down.isDown || this.wasd.down.isDown) vy = speed;
-        this.player.body.setVelocity(vx, vy);
+        this.timerText.setText(`⏱️ ${secondsLeft}s`);
         
-        // ✅ TIDAK ADA WARNING LAGI
+        if (secondsLeft <= 2) {
+            this.timerText.setStyle({ fill: '#ff0000', stroke: '#ffffff', strokeThickness: 4 });
+        } else if (secondsLeft <= 3) {
+            this.timerText.setStyle({ fill: '#ffff00', stroke: '#000000', strokeThickness: 4 });
+        } else {
+            this.timerText.setStyle({ fill: '#00ffff', stroke: '#000000', strokeThickness: 4 });
+        }
+        
+        if (secondsLeft <= 2) {
+            const alpha = 0.5 + Math.sin(now / 100) * 0.5;
+            this.timerText.setAlpha(alpha);
+        } else {
+            this.timerText.setAlpha(1);
+        }
     }
 
     spawnWBC() {
@@ -172,48 +175,23 @@ export default class VirusGame extends Phaser.Scene {
         this.createInfectionParticles(wbc.x, wbc.y);
         wbc.destroy();
         
-        if (this.allies.length < this.MAX_ALLIES) {
-            const ally = new InfectedCell(this, virus.x, virus.y, wbc.radius, virus);
-            this.allies.push(ally);
-            this.add.existing(ally);
-            this.physics.add.existing(ally);
-            
-            this.physics.add.overlap(ally, this.wbcs, (ally, wbc) => {
-                this.handleAllyInfection(ally, wbc);
-            });
-            
-            this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
+        virus.setPosition(wbc.x, wbc.y);
+        virus.lastInfectionTime = Date.now();
+        
+        virus.isDashing = false;
+        if (virus.blinkTween) {
+            virus.blinkTween.stop();
+            virus.blinkTween = null;
         }
-        
-        if (this.score >= this.WIN_SCORE) {
-            this.triggerVictory();
+        if (virus.dashWarningText) {
+            virus.dashWarningText.destroy();
+            virus.dashWarningText = null;
         }
-    }
-
-    handleAllyInfection(ally, wbc) {
-        if (this.isGameOver || this.isPaused || !wbc.active) return;
-        
-        const scoreValue = wbc.scoreValue;
-        this.score += scoreValue;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
-        
-        ally.lastInfectionTime = Date.now();
-        
-        this.createInfectionParticles(wbc.x, wbc.y);
-        wbc.destroy();
-        
-        if (this.allies.length < this.MAX_ALLIES) {
-            const newAlly = new InfectedCell(this, ally.x, ally.y, wbc.radius, this.player);
-            this.allies.push(newAlly);
-            this.add.existing(newAlly);
-            this.physics.add.existing(newAlly);
-            
-            this.physics.add.overlap(newAlly, this.wbcs, (newAlly, wbc) => {
-                this.handleAllyInfection(newAlly, wbc);
-            });
+        if (virus.dashLaser) {
+            virus.dashLaser.destroy();
+            virus.dashLaser = null;
         }
-        
-        this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
+        virus.setTint(0xFF00FF);
         
         if (this.score >= this.WIN_SCORE) {
             this.triggerVictory();
@@ -238,48 +216,30 @@ export default class VirusGame extends Phaser.Scene {
         }
     }
 
-    updateAlliesFormation() {
-        const totalAllies = this.allies.length;
-        if (totalAllies === 0) return;
-        
-        const distance = 100;
-        
-        this.allies.forEach((ally, index) => {
-            if (!ally.active) return;
-            
-            const angle = (index / totalAllies) * Math.PI * 2;
-            const targetX = this.player.x + Math.cos(angle) * distance;
-            const targetY = this.player.y + Math.sin(angle) * distance;
-            
-            const dx = targetX - ally.x;
-            const dy = targetY - ally.y;
-            const followSpeed = 0.05;
-            
-            ally.x += dx * followSpeed;
-            ally.y += dy * followSpeed;
-        });
-    }
-
     checkDamage() {
         if (this.isPaused || this.isGameOver) return;
         
         const now = Date.now();
+        const timeSinceInfection = now - this.player.lastInfectionTime;
         
-        this.allies.forEach((ally, index) => {
-            if (!ally.active) return;
+        if (timeSinceInfection > this.INFECTION_COOLDOWN) {
+            this.player.HP -= this.DAMAGE_PER_TICK;
+            this.player.lastInfectionTime = now;
             
-            const allyTimeSinceInfection = now - ally.lastInfectionTime;
-            if (allyTimeSinceInfection > this.INFECTION_COOLDOWN) {
-                ally.HP -= this.DAMAGE_PER_TICK;
-                ally.lastInfectionTime = now;
-                
-                if (ally.HP <= 0) {
-                    ally.destroy();
-                    this.allies.splice(index, 1);
-                    this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
-                }
+            this.hpText.setText(`HP: ${this.player.HP}/100`);
+            
+            if (this.player.HP > 50) {
+                this.hpText.setStyle({ fill: '#00ff00' });
+            } else if (this.player.HP > 25) {
+                this.hpText.setStyle({ fill: '#ffff00' });
+            } else {
+                this.hpText.setStyle({ fill: '#ff0000' });
             }
-        });
+            
+            if (this.player.HP <= 0) {
+                this.triggerGameOver();
+            }
+        }
     }
 
     togglePause() {
@@ -288,7 +248,6 @@ export default class VirusGame extends Phaser.Scene {
         if (this.isPaused) {
             this.player.body.setVelocity(0, 0);
             this.wbcs.children.iterate((w) => { if (w && w.body) w.body.setVelocity(0, 0); });
-            this.allies.forEach(ally => { if (ally.active) ally.body.setVelocity(0, 0); });
             this.showPauseMenu();
         } else {
             this.hidePauseMenu();
@@ -349,7 +308,7 @@ export default class VirusGame extends Phaser.Scene {
     }
 }
 
-// ===== CLASS VIRUS CELL =====
+// ===== CLASS VIRUS CELL (Dash 400px) =====
 class VirusCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'virus');
@@ -360,70 +319,116 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.radius = 15;
         this.baseSpeed = 320;
         this.isFlipped = false;
-        this.setScale(1.5);
+        this.setScale(2.0);
         this.setTint(0xFF00FF);
         this.setDepth(5);
         this.setCollideWorldBounds(true);
         
         this.lastInfectionTime = Date.now();
-        this.currentSpeed = 0;
-        this.acceleration = 18;
-        this.deceleration = 15;
+        this.targetX = x;
+        this.targetY = y;
         
+        this.initialPhase = true;
+        this.initialPhaseDuration = 5000;
+        this.initialPhaseStartTime = Date.now();
+        this.initialSpeed = 130;
+        
+        this.normalSpeed = 40;
+        this.dashSpeed = 500; // Speed tetap 500
+        this.currentSpeed = this.initialSpeed;
+        
+        this.direction = Math.random() * Math.PI * 2;
         this.body.setCircle(this.radius);
+        
+        this.isDashing = false;
+        this.dashCooldown = 4000;
+        this.lastDashTime = Date.now();
+        this.blinkTween = null;
+        this.wobbleAngle = 0;
+        this.dashTrail = null;
+        this.dashDirection = 0;
+        this.dashWarningText = null;
+        this.dashLaser = null;
     }
 
-    moveToPointer(pointer) {
-        const dx = pointer.x - this.x;
-        const dy = pointer.y - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+    updateAI() {
+        if (!this.body || !this.active) return;
         
-        if (dx > 10 && !this.isFlipped) { this.setFlipX(true); this.isFlipped = true; }
-        else if (dx < -10 && this.isFlipped) { this.setFlipX(false); this.isFlipped = false; }
+        const currentTime = Date.now();
+        const timeSinceSpawn = currentTime - this.initialPhaseStartTime;
         
-        if (distance < 5) { 
-            this.body.setVelocity(0, 0); 
-            this.currentSpeed = 0;
-            return; 
+        if (this.initialPhase) {
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 5) {
+                const dirX = dx / distance;
+                const dirY = dy / distance;
+                this.body.setVelocity(dirX * this.initialSpeed, dirY * this.initialSpeed);
+                this.setFlipX(dx > 0);
+            } else {
+                this.body.setVelocity(0, 0);
+            }
+            
+            if (timeSinceSpawn >= this.initialPhaseDuration) {
+                this.initialPhase = false;
+                this.currentSpeed = this.normalSpeed;
+                this.lastDashTime = Date.now();
+            }
+            return;
         }
         
-        let targetSpeed;
-        if (distance > 150) targetSpeed = this.baseSpeed;
-        else if (distance > 50) targetSpeed = this.baseSpeed * 0.85;
-        else targetSpeed = 120;
+        if (this.isDashing) {
+            this.updateDash();
+            return;
+        }
         
-        if (this.currentSpeed < targetSpeed) {
-            this.currentSpeed = Math.min(this.currentSpeed + this.acceleration, targetSpeed);
+        const timeSinceLastDash = currentTime - this.lastDashTime;
+        
+        if (timeSinceLastDash >= 2000 && !this.blinkTween) {
+            this.startCharging();
+        }
+        
+        if (timeSinceLastDash >= this.dashCooldown && this.blinkTween) {
+            this.startDash();
+        }
+        
+        if (this.dashLaser) {
+            this.updateDashLaser();
+        }
+        
+        if (!this.blinkTween) {
+            this.wobbleAngle += 0.05;
+            const wobbleX = Math.sin(this.wobbleAngle) * 0.3;
+            const wobbleY = Math.cos(this.wobbleAngle * 1.3) * 0.3;
+            
+            const dx = this.targetX - this.x;
+            const dy = this.targetY - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 5) {
+                const dirX = dx / distance;
+                const dirY = dy / distance;
+                this.body.setVelocity(
+                    dirX * this.currentSpeed + wobbleX * 20,
+                    dirY * this.currentSpeed + wobbleY * 20
+                );
+                this.setFlipX(dx > 0);
+            } else {
+                this.body.setVelocity(0, 0);
+            }
         } else {
-            this.currentSpeed = Math.max(this.currentSpeed - this.deceleration, targetSpeed);
+            this.body.setVelocity(0, 0);
+        }
+    }
+
+    startCharging() {
+        if (this.blinkTween) {
+            this.blinkTween.stop();
         }
         
-        const dirX = dx / distance;
-        const dirY = dy / distance;
-        this.body.setVelocity(dirX * this.currentSpeed, dirY * this.currentSpeed);
-    }
-}
-
-// ===== CLASS INFECTED CELL =====
-class InfectedCell extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, radius, mainVirus) {
-        super(scene, x, y, 'virus');
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
-        
-        this.HP = 25;
-        this.radius = radius;
-        this.mainVirus = mainVirus;
-        this.lastInfectionTime = Date.now();
-        
-        this.setTint(0xFF00FF);
-        this.setDepth(4);
-        this.setScale(radius / 35);
-        
-        this.body.setCircle(this.radius);
-        
-        // BLINK EFFECT
-        this.blinkTween = scene.tweens.addCounter({
+        this.blinkTween = this.scene.tweens.addCounter({
             from: 0,
             to: 1,
             duration: 200,
@@ -433,17 +438,186 @@ class InfectedCell extends Phaser.Physics.Arcade.Sprite {
                 if (!this.active) return;
                 const val = tween.getValue();
                 if (val > 0.5) {
-                    this.setTint(0xFF00FF);
+                    this.setTint(0xFF0000);
                 } else {
-                    this.setTint(0xFFFFFF);
+                    this.setTint(0xFF00FF);
+                }
+            }
+        });
+        
+        if (!this.dashWarningText) {
+            this.dashWarningText = this.scene.add.text(this.x, this.y - 50, '⚠️ DASH!', {
+                font: 'bold 32px Arial',
+                fill: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setDepth(20);
+        }
+        this.dashWarningText.setPosition(this.x, this.y - 50);
+        this.dashWarningText.visible = true;
+        
+        this.scene.tweens.add({
+            targets: this.dashWarningText,
+            alpha: 0.3,
+            duration: 200,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        this.createDashLaser();
+    }
+
+    createDashLaser() {
+        if (this.dashLaser) {
+            this.dashLaser.destroy();
+        }
+        
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const angle = Math.atan2(dy, dx);
+        
+        // ✅ LASER 400px (sesuai jarak dash)
+        const laserLength = 400;
+        
+        const endX = this.x + Math.cos(angle) * laserLength;
+        const endY = this.y + Math.sin(angle) * laserLength;
+        
+        this.dashLaser = this.scene.add.graphics().setDepth(4);
+        
+        this.dashLaser.lineStyle(8, 0x00BFFF, 0.4);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.lineStyle(4, 0x00FFFF, 0.8);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.lineStyle(2, 0xFFFFFF, 1.0);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.fillStyle(0x00FFFF, 0.8);
+        this.dashLaser.fillCircle(endX, endY, 6);
+        this.dashLaser.fillStyle(0xFFFFFF, 1.0);
+        this.dashLaser.fillCircle(endX, endY, 3);
+    }
+
+    updateDashLaser() {
+        if (!this.dashLaser) return;
+        
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const angle = Math.atan2(dy, dx);
+        
+        // ✅ LASER 400px
+        const laserLength = 400;
+        
+        const endX = this.x + Math.cos(angle) * laserLength;
+        const endY = this.y + Math.sin(angle) * laserLength;
+        
+        this.dashLaser.clear();
+        
+        this.dashLaser.lineStyle(8, 0x00BFFF, 0.4);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.lineStyle(4, 0x00FFFF, 0.8);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.lineStyle(2, 0xFFFFFF, 1.0);
+        this.dashLaser.lineBetween(this.x, this.y, endX, endY);
+        
+        this.dashLaser.fillStyle(0x00FFFF, 0.8);
+        this.dashLaser.fillCircle(endX, endY, 6);
+        this.dashLaser.fillStyle(0xFFFFFF, 1.0);
+        this.dashLaser.fillCircle(endX, endY, 3);
+    }
+
+    startDash() {
+        if (this.blinkTween) {
+            this.blinkTween.stop();
+            this.blinkTween = null;
+        }
+        
+        if (this.dashWarningText) {
+            this.dashWarningText.destroy();
+            this.dashWarningText = null;
+        }
+        
+        if (this.dashLaser) {
+            this.dashLaser.destroy();
+            this.dashLaser = null;
+        }
+        
+        this.isDashing = true;
+        this.currentSpeed = this.dashSpeed;
+        this.lastDashTime = Date.now();
+        
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        this.dashDirection = Math.atan2(dy, dx);
+        
+        this.setTint(0xFF4400);
+        this.dashTrail = this.scene.add.graphics().setDepth(3);
+        
+        // ✅ DASH 800ms (500 speed × 0.8s = 400px)
+        this.scene.time.delayedCall(800, () => {
+            if (this.active) {
+                this.isDashing = false;
+                this.currentSpeed = this.normalSpeed;
+                this.setTint(0xFF00FF);
+                if (this.dashTrail) {
+                    this.dashTrail.destroy();
+                    this.dashTrail = null;
                 }
             }
         });
     }
 
+    updateDash() {
+        this.body.setVelocity(
+            Math.cos(this.dashDirection) * this.currentSpeed,
+            Math.sin(this.dashDirection) * this.currentSpeed
+        );
+        this.setFlipX(Math.cos(this.dashDirection) > 0);
+        
+        if (this.dashTrail) {
+            this.dashTrail.clear();
+            this.dashTrail.fillStyle(0xFF4400, 0.7);
+            this.dashTrail.fillCircle(this.x, this.y, this.radius * 1.5);
+            this.dashTrail.fillStyle(0xFFFF00, 0.5);
+            this.dashTrail.fillCircle(this.x, this.y, this.radius * 0.8);
+        }
+        
+        const width = this.scene.cameras.main.width;
+        const height = this.scene.cameras.main.height;
+        const margin = 50;
+        
+        if (this.x < margin) {
+            this.x = margin;
+            this.dashDirection = Math.PI - this.dashDirection;
+        } else if (this.x > width - margin) {
+            this.x = width - margin;
+            this.dashDirection = Math.PI - this.dashDirection;
+        }
+        
+        if (this.y < margin) {
+            this.y = margin;
+            this.dashDirection = -this.dashDirection;
+        } else if (this.y > height - margin) {
+            this.y = height - margin;
+            this.dashDirection = -this.dashDirection;
+        }
+    }
+
     destroy() {
         if (this.blinkTween) {
             this.blinkTween.stop();
+        }
+        if (this.dashTrail) {
+            this.dashTrail.destroy();
+        }
+        if (this.dashWarningText) {
+            this.dashWarningText.destroy();
+        }
+        if (this.dashLaser) {
+            this.dashLaser.destroy();
         }
         super.destroy();
     }
@@ -481,7 +655,7 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
         this.setTint(tint);
         this.setDepth(3);
         
-        this.radius = scale * 15;
+        this.radius = scale * 65;
         this.body.setCircle(this.radius);
         
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
