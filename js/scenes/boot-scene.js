@@ -40,7 +40,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('wbc', 'assets/images/white-blood-cell/one-white-blood-cell.png');
         this.load.image('bacteria', 'assets/images/bacteria/one-bacteria-green.png');
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
-        this.load.image('bgVirus', 'assets/images/scene-evocell/blood-vessel.png'); // ✅ TAMBAH INI
+        
+        // ✅ BACKGROUND VIRUS - Pastikan path benar
+        this.load.image('bgVirus', 'assets/images/scene-evocell/human-imune-system.png');
         
         // Card & Button
         this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');

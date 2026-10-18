@@ -1,4 +1,4 @@
-// virus-game.js - Gameplay Virus dengan Infection Mechanic
+// virus-game.js - Gameplay Virus (NO WARNING, Background Fixed)
 export default class VirusGame extends Phaser.Scene {
     constructor() {
         super('VirusGame');
@@ -9,11 +9,10 @@ export default class VirusGame extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 1';
         
-        // Game settings
         this.WIN_SCORE = 2500;
-        this.WBC_SPAWN_DELAY = 450; // Sedikit lebih lambat dari prokaryotic
+        this.WBC_SPAWN_DELAY = 450;
         this.MAX_ALLIES = 15;
-        this.INFECTION_COOLDOWN = 7000; // 7 detik
+        this.INFECTION_COOLDOWN = 7000;
         this.DAMAGE_PER_TICK = 1;
     }
 
@@ -21,17 +20,21 @@ export default class VirusGame extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 1. BACKGROUND (darah/blood vessel)
+        // 1. BACKGROUND - Pastikan muncul
         try {
-            this.add.image(width/2, height/2, 'bgVirus').setDepth(0);
+            const bg = this.add.image(width/2, height/2, 'bgVirus');
+            bg.setDepth(0);
+            bg.setDisplaySize(width, height); // Paksa full screen
+            console.log('Background virus loaded successfully');
         } catch (e) {
-            this.add.rectangle(width/2, height/2, width, height, 0x330000).setDepth(0);
+            console.log('Background virus tidak load, pakai rectangle merah');
+            this.add.rectangle(width/2, height/2, width, height, 0x660000).setDepth(0);
         }
         
         // 2. VARIABEL GAME
         this.player = null;
         this.wbcs = this.add.group();
-        this.allies = []; // Array untuk InfectedCell allies
+        this.allies = [];
         this.score = 0;
         this.isGameOver = false;
         this.isPaused = false;
@@ -55,13 +58,9 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 20px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 3
         }).setDepth(10);
         
-        // Timer warning text (akan muncul saat timer < 2 detik)
-        this.timerWarningText = this.add.text(width/2, 150, '⚠️ CARI SEL!', {
-            font: 'bold 36px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5).setDepth(15);
-        this.timerWarningText.visible = false;
+        // ✅ HAPUS WARNING TEXT - Tidak perlu lagi
         
-        // 4. PLAYER (Virus Utama)
+        // 4. PLAYER
         this.player = new VirusCell(this, width/2, height/2);
         
         // 5. KONTROL
@@ -88,7 +87,7 @@ export default class VirusGame extends Phaser.Scene {
             loop: true
         });
         
-        // 7. COLLISION (Virus vs WBC)
+        // 7. COLLISION
         this.physics.add.overlap(this.player, this.wbcs, this.handleInfection, null, this);
         
         // 8. TIMER CHECK (setiap 1 detik)
@@ -110,7 +109,7 @@ export default class VirusGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        // 10. NOTIFIKASI MISI
+        // 10. NOTIFIKASI
         const missionText = this.add.text(width/2, height/2, 'MISI VIRUS\nInfeksi Sel untuk Bertahan!', {
             font: 'bold 48px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
@@ -120,15 +119,12 @@ export default class VirusGame extends Phaser.Scene {
     update() {
         if (this.isPaused || this.isGameOver) return;
         
-        // Update WBC
         this.wbcs.children.iterate((wbc) => {
             if (wbc && wbc.active) wbc.updateAI();
         });
         
-        // Update Allies (formasi lingkaran)
         this.updateAlliesFormation();
         
-        // Keyboard movement
         const speed = 320;
         let vx = 0, vy = 0;
         if (this.cursors.left.isDown || this.wasd.left.isDown) { vx = -speed; this.player.setFlipX(true); }
@@ -137,14 +133,7 @@ export default class VirusGame extends Phaser.Scene {
         if (this.cursors.down.isDown || this.wasd.down.isDown) vy = speed;
         this.player.body.setVelocity(vx, vy);
         
-        // Update UI Timer Warning
-        const timeSinceInfection = Date.now() - this.player.lastInfectionTime;
-        if (timeSinceInfection > 5000) { // Warning saat < 2 detik
-            this.timerWarningText.visible = true;
-            this.timerWarningText.setAlpha(0.5 + Math.sin(Date.now() / 100) * 0.5); // Berkedip
-        } else {
-            this.timerWarningText.visible = false;
-        }
+        // ✅ TIDAK ADA WARNING LAGI
     }
 
     spawnWBC() {
@@ -166,44 +155,36 @@ export default class VirusGame extends Phaser.Scene {
 
     getWBCSizeLevel() {
         const roll = Math.random();
-        if (roll < 0.6) return 1; // 60% kecil
-        if (roll < 0.9) return 2; // 30% sedang
-        return 3; // 10% besar
+        if (roll < 0.6) return 1;
+        if (roll < 0.9) return 2;
+        return 3;
     }
 
     handleInfection(virus, wbc) {
         if (this.isGameOver || this.isPaused || !wbc.active) return;
-        if (this.allies.length >= this.MAX_ALLIES) return; // Max allies
         
-        // ✅ INFEKSI BERHASIL!
         const scoreValue = wbc.scoreValue;
         this.score += scoreValue;
         this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
         
-        // Reset timer infection
         virus.lastInfectionTime = Date.now();
         
-        // Efek partikel saat infeksi
         this.createInfectionParticles(wbc.x, wbc.y);
-        
-        // Hancurkan WBC
         wbc.destroy();
         
-        // Spawn InfectedCell (ally)
-        const ally = new InfectedCell(this, virus.x, virus.y, wbc.radius, virus);
-        this.allies.push(ally);
-        this.add.existing(ally);
-        this.physics.add.existing(ally);
+        if (this.allies.length < this.MAX_ALLIES) {
+            const ally = new InfectedCell(this, virus.x, virus.y, wbc.radius, virus);
+            this.allies.push(ally);
+            this.add.existing(ally);
+            this.physics.add.existing(ally);
+            
+            this.physics.add.overlap(ally, this.wbcs, (ally, wbc) => {
+                this.handleAllyInfection(ally, wbc);
+            });
+            
+            this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
+        }
         
-        // Update allies counter
-        this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
-        
-        // Collision untuk ally
-        this.physics.add.overlap(ally, this.wbcs, (ally, wbc) => {
-            this.handleAllyInfection(ally, wbc);
-        });
-        
-        // Cek win condition
         if (this.score >= this.WIN_SCORE) {
             this.triggerVictory();
         }
@@ -211,52 +192,40 @@ export default class VirusGame extends Phaser.Scene {
 
     handleAllyInfection(ally, wbc) {
         if (this.isGameOver || this.isPaused || !wbc.active) return;
-        if (this.allies.length >= this.MAX_ALLIES) return;
         
-        // ✅ INFEKSI BERHASIL!
         const scoreValue = wbc.scoreValue;
         this.score += scoreValue;
         this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
         
-        // Reset timer infection ally
         ally.lastInfectionTime = Date.now();
         
-        // Efek partikel
         this.createInfectionParticles(wbc.x, wbc.y);
-        
-        // Hancurkan WBC
         wbc.destroy();
         
-        // Spawn InfectedCell baru (jika belum max)
         if (this.allies.length < this.MAX_ALLIES) {
             const newAlly = new InfectedCell(this, ally.x, ally.y, wbc.radius, this.player);
             this.allies.push(newAlly);
             this.add.existing(newAlly);
             this.physics.add.existing(newAlly);
             
-            // Collision untuk ally baru
             this.physics.add.overlap(newAlly, this.wbcs, (newAlly, wbc) => {
                 this.handleAllyInfection(newAlly, wbc);
             });
         }
         
-        // Update allies counter
         this.alliesText.setText(`Virus Allies: ${this.allies.length}/${this.MAX_ALLIES}`);
         
-        // Cek win condition
         if (this.score >= this.WIN_SCORE) {
             this.triggerVictory();
         }
     }
 
     createInfectionParticles(x, y) {
-        // Spawn 8 partikel magenta
         for (let i = 0; i < 8; i++) {
             const particle = this.add.circle(x, y, 3, 0xFF00FF);
             particle.setDepth(20);
             
             const angle = (Math.PI * 2 / 8) * i;
-            const speed = 100;
             
             this.tweens.add({
                 targets: particle,
@@ -273,17 +242,15 @@ export default class VirusGame extends Phaser.Scene {
         const totalAllies = this.allies.length;
         if (totalAllies === 0) return;
         
-        const distance = 100; // Jarak dari main virus
+        const distance = 100;
         
         this.allies.forEach((ally, index) => {
             if (!ally.active) return;
             
-            // Hitung posisi formasi lingkaran
             const angle = (index / totalAllies) * Math.PI * 2;
             const targetX = this.player.x + Math.cos(angle) * distance;
             const targetY = this.player.y + Math.sin(angle) * distance;
             
-            // Smooth follow
             const dx = targetX - ally.x;
             const dy = targetY - ally.y;
             const followSpeed = 0.05;
@@ -298,15 +265,6 @@ export default class VirusGame extends Phaser.Scene {
         
         const now = Date.now();
         
-        // Check main virus
-        const timeSinceInfection = now - this.player.lastInfectionTime;
-        if (timeSinceInfection > this.INFECTION_COOLDOWN) {
-            this.player.takeDamage(this.DAMAGE_PER_TICK);
-            this.player.lastInfectionTime = now;
-            this.updateHPText();
-        }
-        
-        // Check semua allies
         this.allies.forEach((ally, index) => {
             if (!ally.active) return;
             
@@ -315,9 +273,6 @@ export default class VirusGame extends Phaser.Scene {
                 ally.HP -= this.DAMAGE_PER_TICK;
                 ally.lastInfectionTime = now;
                 
-                // Update HP bar ally
-                ally.updateHPBar();
-                
                 if (ally.HP <= 0) {
                     ally.destroy();
                     this.allies.splice(index, 1);
@@ -325,20 +280,6 @@ export default class VirusGame extends Phaser.Scene {
                 }
             }
         });
-    }
-
-    updateHPText() {
-        const hp = this.player.HP;
-        this.hpText.setText(`HP: ${hp}/100`);
-        
-        // Warna HP
-        if (hp > 50) {
-            this.hpText.setStyle({ fill: '#00ff00' });
-        } else if (hp > 25) {
-            this.hpText.setStyle({ fill: '#ffff00' });
-        } else {
-            this.hpText.setStyle({ fill: '#ff0000' });
-        }
     }
 
     togglePause() {
@@ -408,7 +349,7 @@ export default class VirusGame extends Phaser.Scene {
     }
 }
 
-// ===== CLASS VIRUS CELL (Player Utama) =====
+// ===== CLASS VIRUS CELL =====
 class VirusCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'virus');
@@ -420,7 +361,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.baseSpeed = 320;
         this.isFlipped = false;
         this.setScale(1.5);
-        this.setTint(0xFF00FF); // Magenta
+        this.setTint(0xFF00FF);
         this.setDepth(5);
         this.setCollideWorldBounds(true);
         
@@ -461,17 +402,9 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         const dirY = dy / distance;
         this.body.setVelocity(dirX * this.currentSpeed, dirY * this.currentSpeed);
     }
-
-    takeDamage(amount) {
-        this.HP -= amount;
-        if (this.HP <= 0) {
-            this.HP = 0;
-            this.scene.triggerGameOver();
-        }
-    }
 }
 
-// ===== CLASS INFECTED CELL (Virus Ally) =====
+// ===== CLASS INFECTED CELL =====
 class InfectedCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, radius, mainVirus) {
         super(scene, x, y, 'virus');
@@ -485,11 +418,11 @@ class InfectedCell extends Phaser.Physics.Arcade.Sprite {
         
         this.setTint(0xFF00FF);
         this.setDepth(4);
-        this.setScale(radius / 35); // Scale sesuai ukuran WBC asal
+        this.setScale(radius / 35);
         
         this.body.setCircle(this.radius);
         
-        // ✅ BLINK EFFECT (magenta-putih seperti boss)
+        // BLINK EFFECT
         this.blinkTween = scene.tweens.addCounter({
             from: 0,
             to: 1,
@@ -500,58 +433,23 @@ class InfectedCell extends Phaser.Physics.Arcade.Sprite {
                 if (!this.active) return;
                 const val = tween.getValue();
                 if (val > 0.5) {
-                    this.setTint(0xFF00FF); // Magenta
+                    this.setTint(0xFF00FF);
                 } else {
-                    this.setTint(0xFFFFFF); // Putih
+                    this.setTint(0xFFFFFF);
                 }
             }
         });
-        
-        // HP Bar kecil di atas ally
-        this.hpBarBg = scene.add.graphics().setDepth(6);
-        this.hpBarFill = scene.add.graphics().setDepth(6);
-        this.updateHPBar();
-    }
-
-    updateHPBar() {
-        const barWidth = 30;
-        const barHeight = 5;
-        const barX = this.x - barWidth / 2;
-        const barY = this.y - this.radius - 10;
-        
-        this.hpBarBg.clear();
-        this.hpBarBg.fillStyle(0x330000, 1);
-        this.hpBarBg.fillRect(barX, barY, barWidth, barHeight);
-        
-        this.hpBarFill.clear();
-        const hpPercent = this.HP / 25;
-        this.hpBarFill.fillStyle(0x00ff00, 1);
-        this.hpBarFill.fillRect(barX, barY, barWidth * hpPercent, barHeight);
-    }
-
-    update() {
-        // Update posisi HP bar
-        const barWidth = 30;
-        const barHeight = 5;
-        this.hpBarBg.setPosition(this.x - barWidth / 2, this.y - this.radius - 10);
-        this.hpBarFill.setPosition(this.x - barWidth / 2, this.y - this.radius - 10);
     }
 
     destroy() {
         if (this.blinkTween) {
             this.blinkTween.stop();
         }
-        if (this.hpBarBg) {
-            this.hpBarBg.destroy();
-        }
-        if (this.hpBarFill) {
-            this.hpBarFill.destroy();
-        }
         super.destroy();
     }
 }
 
-// ===== CLASS WBC (White Blood Cell - Target Infeksi) =====
+// ===== CLASS WBC =====
 class WBC extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sizeLevel) {
         super(scene, x, y, 'wbc');
@@ -563,17 +461,17 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
             scale = 0.4;
             scoreValue = 50;
             speed = 120;
-            tint = 0xFFFFFF; // Putih
+            tint = 0xFFFFFF;
         } else if (sizeLevel === 2) {
             scale = 0.65;
             scoreValue = 100;
             speed = 80;
-            tint = 0xADD8E6; // Biru muda
+            tint = 0xADD8E6;
         } else {
             scale = 1.0;
             scoreValue = 150;
             speed = 50;
-            tint = 0x87CEEB; // Biru langit
+            tint = 0x87CEEB;
         }
         
         this.sizeLevel = sizeLevel;
@@ -583,7 +481,7 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
         this.setTint(tint);
         this.setDepth(3);
         
-        this.radius = scale * 50; // Approximate radius
+        this.radius = scale * 15;
         this.body.setCircle(this.radius);
         
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
@@ -592,7 +490,6 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
     updateAI() {
         if (!this.body) return;
         
-        // Random wander
         if (Phaser.Math.Between(0, 100) < 2) {
             this.direction += Phaser.Math.FloatBetween(-0.4, 0.4);
         }
@@ -603,7 +500,6 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
         );
         this.setFlipX(Math.cos(this.direction) > 0);
         
-        // Boundary check
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
         if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) {
