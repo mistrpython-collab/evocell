@@ -1,4 +1,4 @@
-// wbc-game.js - Gameplay WBC (White Blood Cell) dengan Antibody Shot
+// wbc-game.js - WBC dengan Tembakan Cepat + Hanya Musuh Besar yang Lemah
 export default class WBCGame extends Phaser.Scene {
     constructor() {
         super('WBCGame');
@@ -11,22 +11,21 @@ export default class WBCGame extends Phaser.Scene {
         
         this.WIN_SCORE = 2500;
         this.ENEMY_SPAWN_DELAY = 450;
-        this.FIRE_RATE = 1000; // 1 detik
-        this.WEAKEN_DURATION = 5000; // 5 detik efek lemah
+        this.FIRE_RATE = 200; // ✅ TEMBAK SANGAT CEPAT (200ms = 5 tembakan/detik)
+        this.WEAKEN_DURATION = 6000; // ✅ 6 DETIK EFFECT SLOW
+        this.DAMAGE_INVULNERABILITY = 500;
     }
 
     create() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 1. BACKGROUND - Pakai bgVirus yang sudah di-load
+        // 1. BACKGROUND
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
             bg.setDepth(0);
             bg.setDisplaySize(width, height);
-            console.log('Background WBC loaded successfully');
         } catch (e) {
-            console.log('Background tidak load, pakai rectangle merah');
             this.add.rectangle(width/2, height/2, width, height, 0x660000).setDepth(0);
         }
         
@@ -40,25 +39,45 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         this.lastFireTime = 0;
+        this.lastDamageTime = 0;
         
-        // 3. UI
+        // 3. LASER SIGHT (Hanya visual, tidak damage)
+        this.laserGraphics = this.add.graphics().setDepth(4);
+        
+        // 4. UI
         this.add.text(30, 30, 'WBC', {
-            font: 'bold 28px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 4
+            font: 'bold 28px Arial', 
+            fill: '#FFFF00', 
+            stroke: '#000000', 
+            strokeThickness: 4
         }).setDepth(10);
         
         this.scoreText = this.add.text(width - 30, 30, `Skor: 0 / ${this.WIN_SCORE}`, {
-            font: 'bold 28px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 4
+            font: 'bold 28px Arial', 
+            fill: '#FFFFFF', 
+            stroke: '#000000', 
+            strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
         
-        this.hpText = this.add.text(30, 70, `HP: 100/100`, {
-            font: 'bold 24px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 3
+        this.hpText = this.add.text(30, 70, `HP: 500/500`, {
+            font: 'bold 24px Arial', 
+            fill: '#00FF00', 
+            stroke: '#000000', 
+            strokeThickness: 4
         }).setDepth(10);
         
-        // 4. PLAYER (WBC)
+        // 5. PLAYER
         this.player = new WBCPlayer(this, width/2, height/2);
         
-        // 5. KONTROL
+        // 6. KONTROL
         this.input.on('pointermove', (pointer) => {
+            if (!this.isPaused && !this.isGameOver) {
+                this.player.targetX = pointer.x;
+                this.player.targetY = pointer.y;
+            }
+        });
+        
+        this.input.on('pointerdown', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
                 this.player.targetX = pointer.x;
                 this.player.targetY = pointer.y;
@@ -74,7 +93,7 @@ export default class WBCGame extends Phaser.Scene {
         });
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         
-        // 6. SPAWN SYSTEM
+        // 7. SPAWN SYSTEM
         this.time.addEvent({
             delay: this.ENEMY_SPAWN_DELAY,
             callback: this.spawnEnemy,
@@ -82,11 +101,11 @@ export default class WBCGame extends Phaser.Scene {
             loop: true
         });
         
-        // 7. COLLISION
+        // 8. COLLISION
         this.physics.add.overlap(this.player, this.enemies, this.handleEat, null, this);
         this.physics.add.overlap(this.bullets, this.enemies, this.handleBulletHit, null, this);
         
-        // 8. TOMBOL PAUSE
+        // 9. TOMBOL PAUSE
         const pauseBtnSize = 150;
         const pauseBtnMargin = 50;
         this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
@@ -97,11 +116,17 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        // 9. NOTIFIKASI
-        const missionText = this.add.text(width/2, height/2, 'MISI WBC\nTembak & Makan Patogen!', {
-            font: 'bold 48px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 6, align: 'center'
+        // 10. NOTIFIKASI
+        const missionText = this.add.text(width/2, height/2, 'MISI WBC\nTembak Cepat & Makan Patogen!', {
+            font: 'bold 48px Arial', 
+            fill: '#FFFF00', 
+            stroke: '#000000', 
+            strokeThickness: 6, 
+            align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
+        
+        console.log('✅ WBC Game created - Fire rate: 200ms');
     }
 
     update() {
@@ -117,12 +142,32 @@ export default class WBCGame extends Phaser.Scene {
         
         this.player.updateAI();
         
-        // Auto-fire setiap 1 detik
+        // ✅ UPDATE LASER (hanya visual)
+        this.updateLaserSight();
+        
+        // ✅ AUTO-FIRE SANGAT CEPAT (setiap 200ms)
         const now = Date.now();
         if (now - this.lastFireTime >= this.FIRE_RATE) {
             this.fireAntibody();
             this.lastFireTime = now;
         }
+    }
+
+    updateLaserSight() {
+        // Laser HANYA VISUAL - tidak damage
+        this.laserGraphics.clear();
+        
+        const dx = this.player.targetX - this.player.x;
+        const dy = this.player.targetY - this.player.y;
+        const angle = Math.atan2(dy, dx);
+        const laserLength = 150; // Lebih pendek
+        
+        const endX = this.player.x + Math.cos(angle) * laserLength;
+        const endY = this.player.y + Math.sin(angle) * laserLength;
+        
+        // Laser tipis transparan
+        this.laserGraphics.lineStyle(2, 0x00FFFF, 0.3);
+        this.laserGraphics.lineBetween(this.player.x, this.player.y, endX, endY);
     }
 
     spawnEnemy() {
@@ -138,7 +183,6 @@ export default class WBCGame extends Phaser.Scene {
         else if (side === 2) { x = Phaser.Math.Between(80, width - 80); y = -80; }
         else { x = Phaser.Math.Between(80, width - 80); y = height + 80; }
         
-        // 70% bakteri, 30% virus
         const isVirus = Math.random() < 0.3;
         
         if (isVirus) {
@@ -168,24 +212,36 @@ export default class WBCGame extends Phaser.Scene {
     handleBulletHit(bullet, enemy) {
         if (!bullet.active || !enemy.active) return;
         
-        enemy.weaken();
+        // ✅ HANYA MUSUH SIZE 2 & 3 YANG BISA LEMAH
+        if (enemy.sizeLevel >= 2 || enemy.isVirus) {
+            enemy.weaken();
+            console.log('💥 Enemy weakened! Size:', enemy.sizeLevel);
+        }
+        
         bullet.destroy();
     }
 
     handleEat(wbc, enemy) {
         if (this.isGameOver || this.isPaused || !enemy.active) return;
         
-        // Hanya bisa makan musuh yang LEMAH
+        const now = Date.now();
+        if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) {
+            return;
+        }
+        
+        // Jika tabrak musuh NORMAL
         if (!enemy.isWeakened) {
-            this.player.takeDamage(10);
-            this.hpText.setText(`HP: ${this.player.HP}/100`);
+            this.lastDamageTime = now;
+            this.player.takeDamage(1);
             
-            if (this.player.HP > 50) {
-                this.hpText.setStyle({ fill: '#00ff00' });
-            } else if (this.player.HP > 25) {
-                this.hpText.setStyle({ fill: '#ffff00' });
+            this.hpText.setText(`HP: ${this.player.HP}/500`);
+            
+            if (this.player.HP > 250) {
+                this.hpText.setStyle({ fill: '#00FF00' });
+            } else if (this.player.HP > 100) {
+                this.hpText.setStyle({ fill: '#FFFF00' });
             } else {
-                this.hpText.setStyle({ fill: '#ff0000' });
+                this.hpText.setStyle({ fill: '#FFA500' });
             }
             
             if (this.player.HP <= 0) {
@@ -278,7 +334,10 @@ export default class WBCGame extends Phaser.Scene {
     triggerVictory() {
         this.isGameOver = true;
         this.add.text(640, 300, 'MISI SELESAI!', {
-            font: 'bold 72px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 8
+            font: 'bold 72px Arial', 
+            fill: '#00FF00', 
+            stroke: '#000000', 
+            strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
@@ -286,7 +345,10 @@ export default class WBCGame extends Phaser.Scene {
     triggerGameOver() {
         this.isGameOver = true;
         this.add.text(640, 300, 'WBC GAGAL', {
-            font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8
+            font: 'bold 72px Arial', 
+            fill: '#FFA500', 
+            stroke: '#000000', 
+            strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
@@ -299,7 +361,8 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
-        this.HP = 100;
+        this.HP = 500;
+        this.maxHP = 500;
         this.radius = 45;
         this.baseSpeed = 320;
         this.isFlipped = false;
@@ -355,36 +418,54 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS ANTIBODY BULLET =====
+// ===== CLASS ANTIBODY BULLET - PELURU Y TERLIHAT =====
 class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, angle) {
+        // Buat texture Y yang LEBIH TERLIHAT dan BESAR
         const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
-        graphics.lineStyle(3, 0x00FFFF, 1);
-        graphics.lineBetween(0, 0, 0, -10);
-        graphics.lineBetween(0, -10, -5, -15);
-        graphics.lineBetween(0, -10, 5, -15);
-        graphics.generateTexture('antibody', 20, 20);
+        
+        // Garis Y KUNING TERANG
+        graphics.lineStyle(5, 0xFFFF00, 1);
+        graphics.lineBetween(0, 0, 0, -15);
+        graphics.lineBetween(0, -15, -8, -22);
+        graphics.lineBetween(0, -15, 8, -22);
+        
+        // Lingkaran CYAN di tengah
+        graphics.fillStyle(0x00FFFF, 1);
+        graphics.fillCircle(0, -15, 5);
+        
+        // Glow effect
+        graphics.lineStyle(2, 0xFFFFFF, 0.8);
+        graphics.strokeCircle(0, -15, 7);
+        
+        graphics.generateTexture('antibody', 30, 30);
         graphics.destroy();
         
         super(scene, x, y, 'antibody');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
-        this.moveSpeed = 400;
+        this.moveSpeed = 500; // Lebih cepat
         this.direction = angle;
-        this.radius = 10;
+        this.radius = 12;
         
         this.body.setCircle(this.radius);
         this.setDepth(6);
+        
+        // Rotasi peluru mengikuti arah
+        this.setRotation(angle);
         
         this.body.setVelocity(
             Math.cos(angle) * this.moveSpeed,
             Math.sin(angle) * this.moveSpeed
         );
         
+        // Hancurkan setelah 3 detik
         scene.time.delayedCall(3000, () => {
             if (this.active) this.destroy();
         });
+        
+        console.log('🔫 Bullet fired');
     }
 
     updateBullet() {
@@ -396,7 +477,7 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BACTERIA =====
+// ===== CLASS BACTERIA - HANYA SIZE 2 & 3 BISA LEMAH =====
 class Bacteria extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sizeLevel) {
         super(scene, x, y, 'bacteria');
@@ -440,10 +521,15 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
     }
 
     weaken() {
+        // ✅ HANYA SIZE 2 & 3 YANG BISA LEMAH
+        if (this.sizeLevel < 2) return;
+        
         this.isWeakened = true;
         this.weakenTimer = Date.now();
-        this.moveSpeed = this.normalSpeed * 0.3;
-        this.setTint(0x888888);
+        this.moveSpeed = this.normalSpeed * 0.2; // Sangat lambat (80% slow)
+        this.setTint(0x888888); // Abu-abu
+        
+        console.log('🐌 Bacteria weakened! Size:', this.sizeLevel);
     }
 
     updateAI() {
@@ -451,7 +537,7 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
         
         if (this.isWeakened) {
             const now = Date.now();
-            if (now - this.weakenTimer > 5000) {
+            if (now - this.weakenTimer > 6000) { // ✅ 6 DETIK
                 this.isWeakened = false;
                 this.moveSpeed = this.normalSpeed;
                 this.setTint(this.originalTint);
@@ -476,13 +562,14 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS VIRUS ENEMY =====
+// ===== CLASS VIRUS ENEMY - BISA LEMAH =====
 class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'virus');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
+        this.isVirus = true; // ✅ Flag untuk bisa weaken
         this.scoreValue = 100;
         this.normalSpeed = 100;
         this.moveSpeed = 100;
@@ -503,8 +590,10 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
     weaken() {
         this.isWeakened = true;
         this.weakenTimer = Date.now();
-        this.moveSpeed = this.normalSpeed * 0.3;
+        this.moveSpeed = this.normalSpeed * 0.2; // Sangat lambat
         this.setTint(0x888888);
+        
+        console.log('🐌 Virus weakened!');
     }
 
     updateAI() {
@@ -512,7 +601,7 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
         
         if (this.isWeakened) {
             const now = Date.now();
-            if (now - this.weakenTimer > 5000) {
+            if (now - this.weakenTimer > 6000) { // ✅ 6 DETIK
                 this.isWeakened = false;
                 this.moveSpeed = this.normalSpeed;
                 this.setTint(this.originalTint);
