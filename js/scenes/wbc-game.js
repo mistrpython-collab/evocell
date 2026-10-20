@@ -1,4 +1,4 @@
-// wbc-game.js - WBC dengan Efek Warna Gelap (Tanpa Opacity) pada Musuh yang Kena Tembakan
+// wbc-game.js - WBC dengan Peluru Antibodi Y (Dibalik + Diperkecil)
 export default class WBCGame extends Phaser.Scene {
     constructor() {
         super('WBCGame');
@@ -9,10 +9,12 @@ export default class WBCGame extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 1';
         
-        this.WIN_SCORE = 7500;
+        this.WIN_SCORE = 10000;
         this.ENEMY_SPAWN_DELAY = 700;
         this.WEAKEN_DURATION = 6000;
         this.DAMAGE_INVULNERABILITY = 500;
+        this.INSTAKILL_CHANCE = 35;
+        this.SHIELD_CHANCE = 20;
         
         this.mouseX = 0;
         this.mouseY = 0;
@@ -22,7 +24,6 @@ export default class WBCGame extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 1. BACKGROUND
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
             bg.setDepth(0);
@@ -31,7 +32,6 @@ export default class WBCGame extends Phaser.Scene {
             this.add.rectangle(width/2, height/2, width, height, 0x660000).setDepth(0);
         }
         
-        // 2. VARIABEL GAME
         this.player = null;
         this.enemies = this.add.group();
         this.bullets = this.add.group();
@@ -42,46 +42,54 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton = null;
         this.lastDamageTime = 0;
         
-        // 3. GENERATE TEXTURE PELURU
+        // ✅ GENERATE TEXTURE PELURU Y - DIPERKECIL (24x24)
         const bulletGraphics = this.add.graphics();
-        bulletGraphics.fillStyle(0xFFFF00, 1);
-        bulletGraphics.fillCircle(12, 12, 10);
+        
+        // Batang vertikal Y (bagian bawah - Fc region)
+        bulletGraphics.lineStyle(4, 0xFFFF00, 1); // Kuning
+        bulletGraphics.lineBetween(12, 20, 12, 12);
+        
+        // Cabang kiri Y
+        bulletGraphics.lineBetween(12, 12, 5, 5);
+        
+        // Cabang kanan Y
+        bulletGraphics.lineBetween(12, 12, 19, 5);
+        
+        // Lingkaran di ujung cabang kiri (binding site - cyan)
         bulletGraphics.fillStyle(0x00FFFF, 1);
-        bulletGraphics.fillCircle(12, 12, 6);
-        bulletGraphics.lineStyle(2, 0xFFFFFF, 1);
-        bulletGraphics.strokeCircle(12, 12, 11);
+        bulletGraphics.fillCircle(5, 5, 3);
+        bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
+        bulletGraphics.strokeCircle(5, 5, 3);
+        
+        // Lingkaran di ujung cabang kanan (binding site - cyan)
+        bulletGraphics.fillStyle(0x00FFFF, 1);
+        bulletGraphics.fillCircle(19, 5, 3);
+        bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
+        bulletGraphics.strokeCircle(19, 5, 3);
+        
+        // Titik tengah Y (pertemuan cabang)
+        bulletGraphics.fillStyle(0xFFFFFF, 1);
+        bulletGraphics.fillCircle(12, 12, 2);
+        
         bulletGraphics.generateTexture('antibodyBulletTex', 24, 24);
         bulletGraphics.destroy();
         
-        // 4. LASER SIGHT
         this.laserGraphics = this.add.graphics().setDepth(4);
         
-        // 5. UI
         this.add.text(30, 30, 'WBC', {
-            font: 'bold 28px Arial', 
-            fill: '#FFFF00', 
-            stroke: '#000000', 
-            strokeThickness: 4
+            font: 'bold 28px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
         this.scoreText = this.add.text(width - 30, 30, `Skor: 0 / ${this.WIN_SCORE}`, {
-            font: 'bold 28px Arial', 
-            fill: '#FFFFFF', 
-            stroke: '#000000', 
-            strokeThickness: 4
+            font: 'bold 28px Arial', fill: '#FFFFFF', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
         
         this.hpText = this.add.text(30, 70, `HP: 500/500`, {
-            font: 'bold 24px Arial', 
-            fill: '#00FF00', 
-            stroke: '#000000', 
-            strokeThickness: 4
+            font: 'bold 24px Arial', fill: '#00FF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        // 6. PLAYER
         this.player = new WBCPlayer(this, width/2, height/2);
         
-        // 7. KONTROL TERPISAH
         this.input.on('pointermove', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
                 this.mouseX = pointer.x;
@@ -105,7 +113,6 @@ export default class WBCGame extends Phaser.Scene {
         this.arrows = this.input.keyboard.createCursorKeys();
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         
-        // 8. SPAWN SYSTEM
         this.time.addEvent({
             delay: this.ENEMY_SPAWN_DELAY,
             callback: this.spawnEnemy,
@@ -113,11 +120,9 @@ export default class WBCGame extends Phaser.Scene {
             loop: true
         });
         
-        // 9. COLLISION
         this.physics.add.overlap(this.player, this.enemies, this.handleEat, null, this);
         this.physics.add.overlap(this.bullets, this.enemies, this.handleBulletHit, null, this);
         
-        // 10. TOMBOL PAUSE
         const pauseBtnSize = 150;
         const pauseBtnMargin = 50;
         this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
@@ -128,13 +133,8 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        // 11. NOTIFIKASI
         const missionText = this.add.text(width/2, height/2, 'MISI WBC\nWASD Gerak - Mouse Aim - Klik Tembak!', {
-            font: 'bold 48px Arial', 
-            fill: '#FFFF00', 
-            stroke: '#000000', 
-            strokeThickness: 6, 
-            align: 'center'
+            font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
     }
@@ -193,20 +193,14 @@ export default class WBCGame extends Phaser.Scene {
         else if (side === 2) { x = Phaser.Math.Between(80, width - 80); y = -80; }
         else { x = Phaser.Math.Between(80, width - 80); y = height + 80; }
         
-        const isVirus = Math.random() < 0.3;
+        const isVirus = Math.random() < 0.5;
+        const hasShield = Math.random() < (this.SHIELD_CHANCE / 100);
         
         if (isVirus) {
-            this.enemies.add(new VirusEnemy(this, x, y));
+            this.enemies.add(new VirusEnemy(this, x, y, hasShield));
         } else {
-            const sizeLevel = this.getEnemySizeLevel();
-            this.enemies.add(new Bacteria(this, x, y, sizeLevel));
+            this.enemies.add(new Bacteria(this, x, y, hasShield));
         }
-    }
-
-    getEnemySizeLevel() {
-        const roll = Math.random();
-        if (roll < 0.5) return 2;
-        return 3;
     }
 
     fireAntibody() {
@@ -221,10 +215,33 @@ export default class WBCGame extends Phaser.Scene {
     handleBulletHit(bullet, enemy) {
         if (!bullet.active || !enemy.active) return;
         
-        if (enemy.sizeLevel >= 2 || enemy.isVirus) {
-            enemy.weaken();
+        if (enemy.isWeakened) {
+            return;
         }
         
+        if (enemy.hasShield) {
+            enemy.removeShield();
+            enemy.weaken();
+            bullet.destroy();
+            return;
+        }
+        
+        const roll = Phaser.Math.Between(1, 100);
+        if (roll <= this.INSTAKILL_CHANCE) {
+            enemy.destroy();
+            
+            const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
+            this.score += points;
+            this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+            
+            if (this.score >= this.WIN_SCORE) {
+                this.triggerVictory();
+            }
+            
+            return;
+        }
+        
+        enemy.weaken();
         bullet.destroy();
     }
 
@@ -256,8 +273,8 @@ export default class WBCGame extends Phaser.Scene {
             return;
         }
         
-        const scoreValue = enemy.scoreValue * 4;
-        this.score += scoreValue;
+        const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
+        this.score += points;
         this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
         
         this.createEatParticles(enemy.x, enemy.y);
@@ -360,7 +377,7 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
         
         this.HP = 500;
         this.maxHP = 500;
-        this.radius = 30;
+        this.radius = 45;
         this.baseSpeed = 320;
         this.isFlipped = false;
         this.setScale(1.5);
@@ -402,7 +419,7 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS ANTIBODY BULLET =====
+// ===== CLASS ANTIBODY BULLET (BENTUK Y - DIPERKECIL & DIBALIK) =====
 class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, angle) {
         super(scene, x, y, 'antibodyBulletTex');
@@ -410,11 +427,15 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         
         this.moveSpeed = 600;
-        this.radius = 10;
+        this.radius = 10; // ✅ Diperkecil dari 15
         
         this.body.setCircle(this.radius);
         this.setDepth(6);
-        this.setRotation(angle);
+        
+        // ✅ DIBALIK: Cabang Y (dengan lingkaran cyan) menghadap ke arah tembak
+        // Y default: batang di bawah, cabang di atas (menghadap ke atas)
+        // angle + Math.PI/2 → cabang Y menghadap ke arah angle (ke musuh)
+        this.setRotation(angle + Math.PI / 2);
         
         this.body.setVelocity(
             Math.cos(angle) * this.moveSpeed,
@@ -435,71 +456,89 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BACTERIA - WARNA DIGELAPKAN (TANPA OPACITY) =====
+// ===== CLASS BACTERIA - DENGAN TAMENG =====
 class Bacteria extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, sizeLevel) {
+    constructor(scene, x, y, hasShield = false) {
         super(scene, x, y, 'bacteria');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
-        let scale, scoreValue, speed, tint;
-        if (sizeLevel === 2) {
-            scale = 0.65;
-            scoreValue = 25;
-            speed = 80;
-            tint = 0xFF6666;
-        } else {
-            scale = 1.0;
-            scoreValue = 50;
-            speed = 50;
-            tint = 0x6666FF;
-        }
-        
-        this.sizeLevel = sizeLevel;
-        this.scoreValue = scoreValue;
-        this.normalSpeed = speed;
-        this.moveSpeed = speed;
-        this.setScale(scale);
-        this.setTint(tint);
+        this.scoreValue = 50;
+        this.normalSpeed = 80;
+        this.moveSpeed = 80;
+        this.setScale(0.8);
+        this.setTint(0x66FF66);
         this.setDepth(3);
         
-        this.radius = scale * 30;
+        this.radius = 35;
         this.body.setCircle(this.radius);
+        
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
         
         this.isWeakened = false;
         this.weakenTimer = 0;
-        this.originalTint = tint;
+        this.originalTint = 0x66FF66;
         
-        // Outline graphics
-        this.outlineGraphics = scene.add.graphics().setDepth(2);
+        this.hasShield = hasShield;
+        this.wasShielded = hasShield;
+        this.shieldGraphics = null;
+        
+        if (hasShield) {
+            this.createShield(scene);
+        }
+    }
+
+    createShield(scene) {
+        this.shieldGraphics = scene.add.graphics().setDepth(2);
+        this.updateShieldPosition();
+    }
+
+    updateShieldPosition() {
+        if (this.shieldGraphics) {
+            this.shieldGraphics.clear();
+            this.shieldGraphics.fillStyle(0x00BFFF, 0.3);
+            this.shieldGraphics.fillCircle(0, 0, this.radius + 12);
+            this.shieldGraphics.lineStyle(3, 0x00FFFF, 0.6);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 12);
+            this.shieldGraphics.lineStyle(2, 0xFFFFFF, 0.3);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 8);
+        }
+    }
+
+    removeShield() {
+        if (this.shieldGraphics) {
+            this.shieldGraphics.clear();
+            this.shieldGraphics.lineStyle(2, 0x00FFFF, 0.8);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 15);
+            
+            this.scene.tweens.add({
+                targets: this.shieldGraphics,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    if (this.shieldGraphics) {
+                        this.shieldGraphics.destroy();
+                        this.shieldGraphics = null;
+                    }
+                }
+            });
+        }
+        this.hasShield = false;
     }
 
     weaken() {
         this.isWeakened = true;
         this.weakenTimer = Date.now();
         this.moveSpeed = this.normalSpeed * 0.2;
-        
-        // ✅ WARNA DIGELAPKAN - Alpha TETAP 100% (tidak dikurangi)
-        // Tint abu-abu gelap (mendekati hitam)
         this.setTint(0x444444);
-        // Alpha tetap 100% - solid, tidak transparan
         this.setAlpha(1.0);
-        
-        // Outline putih tebal untuk kontras
-        this.outlineGraphics.clear();
-        this.outlineGraphics.lineStyle(5, 0xFFFFFF, 1.0);
-        this.outlineGraphics.strokeCircle(0, 0, this.radius + 5);
-        this.outlineGraphics.lineStyle(3, 0x888888, 0.8);
-        this.outlineGraphics.strokeCircle(0, 0, this.radius + 10);
     }
 
     restoreNormal() {
         this.isWeakened = false;
         this.moveSpeed = this.normalSpeed;
         this.setTint(this.originalTint);
-        this.setAlpha(1.0); // Tetap 100%
-        this.outlineGraphics.clear();
+        this.setAlpha(1.0);
     }
 
     updateAI() {
@@ -509,6 +548,11 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
             if (Date.now() - this.weakenTimer > 6000) {
                 this.restoreNormal();
             }
+        }
+        
+        if (this.shieldGraphics) {
+            this.shieldGraphics.x = this.x;
+            this.shieldGraphics.y = this.y;
         }
         
         if (Phaser.Math.Between(0, 100) < 2) {
@@ -525,16 +569,16 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
     }
 
     destroy() {
-        if (this.outlineGraphics) {
-            this.outlineGraphics.destroy();
+        if (this.shieldGraphics) {
+            this.shieldGraphics.destroy();
         }
         super.destroy();
     }
 }
 
-// ===== CLASS VIRUS ENEMY - WARNA DIGELAPKAN (TANPA OPACITY) =====
+// ===== CLASS VIRUS ENEMY - DENGAN TAMENG =====
 class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
+    constructor(scene, x, y, hasShield = false) {
         super(scene, x, y, 'virus');
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -547,33 +591,68 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFF00FF);
         this.setDepth(3);
         
-        this.radius = 20;
+        this.radius = 30;
         this.body.setCircle(this.radius);
+        
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
         
         this.isWeakened = false;
         this.weakenTimer = 0;
         this.originalTint = 0xFF00FF;
         
-        // Outline graphics
-        this.outlineGraphics = scene.add.graphics().setDepth(2);
+        this.hasShield = hasShield;
+        this.wasShielded = hasShield;
+        this.shieldGraphics = null;
+        
+        if (hasShield) {
+            this.createShield(scene);
+        }
+    }
+
+    createShield(scene) {
+        this.shieldGraphics = scene.add.graphics().setDepth(2);
+        this.updateShieldPosition();
+    }
+
+    updateShieldPosition() {
+        if (this.shieldGraphics) {
+            this.shieldGraphics.clear();
+            this.shieldGraphics.fillStyle(0x00BFFF, 0.3);
+            this.shieldGraphics.fillCircle(0, 0, this.radius + 12);
+            this.shieldGraphics.lineStyle(3, 0x00FFFF, 0.6);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 12);
+            this.shieldGraphics.lineStyle(2, 0xFFFFFF, 0.3);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 8);
+        }
+    }
+
+    removeShield() {
+        if (this.shieldGraphics) {
+            this.shieldGraphics.clear();
+            this.shieldGraphics.lineStyle(2, 0x00FFFF, 0.8);
+            this.shieldGraphics.strokeCircle(0, 0, this.radius + 15);
+            
+            this.scene.tweens.add({
+                targets: this.shieldGraphics,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    if (this.shieldGraphics) {
+                        this.shieldGraphics.destroy();
+                        this.shieldGraphics = null;
+                    }
+                }
+            });
+        }
+        this.hasShield = false;
     }
 
     weaken() {
         this.isWeakened = true;
         this.weakenTimer = Date.now();
         this.moveSpeed = this.normalSpeed * 0.2;
-        
-        // ✅ WARNA DIGELAPKAN - Alpha TETAP 100%
         this.setTint(0x444444);
         this.setAlpha(1.0);
-        
-        // Outline putih tebal
-        this.outlineGraphics.clear();
-        this.outlineGraphics.lineStyle(5, 0xFFFFFF, 1.0);
-        this.outlineGraphics.strokeCircle(0, 0, this.radius + 5);
-        this.outlineGraphics.lineStyle(3, 0x888888, 0.8);
-        this.outlineGraphics.strokeCircle(0, 0, this.radius + 10);
     }
 
     restoreNormal() {
@@ -581,7 +660,6 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
         this.moveSpeed = this.normalSpeed;
         this.setTint(this.originalTint);
         this.setAlpha(1.0);
-        this.outlineGraphics.clear();
     }
 
     updateAI() {
@@ -591,6 +669,11 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
             if (Date.now() - this.weakenTimer > 6000) {
                 this.restoreNormal();
             }
+        }
+        
+        if (this.shieldGraphics) {
+            this.shieldGraphics.x = this.x;
+            this.shieldGraphics.y = this.y;
         }
         
         if (Phaser.Math.Between(0, 100) < 2) {
@@ -607,8 +690,8 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     destroy() {
-        if (this.outlineGraphics) {
-            this.outlineGraphics.destroy();
+        if (this.shieldGraphics) {
+            this.shieldGraphics.destroy();
         }
         super.destroy();
     }
