@@ -30,7 +30,7 @@ export default class ModeSelectScene extends Phaser.Scene {
         this.createModeCard(width / 2, height / 2 + 20, "Misi 2", this.selectedRole, "Tantang Boss");
 
         // ✅ KARTU 3: Misi 3 - CELL DODGER (Kanan)
-        this.createModeCard(width / 2 + 380, height / 2 + 20, "Misi 3", "dodger", "Hindari Rintangan");
+        this.createModeCard(width / 2 + 380, height / 2 + 20, "Misi 3", "prokaryotic", "Hindari Rintangan");
 
         // Back Button
         const backButton = this.add.image(80, 60, "btnBack");
@@ -77,24 +77,29 @@ export default class ModeSelectScene extends Phaser.Scene {
         
         // ✅ PERBAIKAN: Arahkan ke scene yang sesuai dengan character
                 playBtn.on("pointerdown", () => {
-            console.log(modeTitle, "mode selected - character:", character);
-            
-            let gameScene = 'ProkaryoticGame';
-            
-            if (character === 'virus') {
-                gameScene = 'VirusGame';
-            } else if (character === 'wbc') {
-                gameScene = 'WBCGame';
-            } else if (character === 'dodger') { // ✅ TAMBAH INI
-                gameScene = 'CellDodgerScene';
-            }
+    console.log(modeTitle, "mode selected - character:", character);
+    
+    let gameScene = 'ProkaryoticGame';
+    
+    // ✅ PRIORITAS: Cek Misi 3 DULU (Cell Dodger)
+    if (modeTitle === "Misi 3") {
+        gameScene = 'CellDodgerScene';
+    } 
+    // Baru cek character untuk Misi 1 & 2
+    else if (character === 'virus') {
+        gameScene = 'VirusGame';
+    } else if (character === 'wbc') {
+        gameScene = 'WBCGame';
+    } else if (character === 'dodger') {
+        gameScene = 'CellDodgerScene';
+    }
 
-            this.scene.start(gameScene, {
-                role: character,
-                mode: modeTitle === "Misi 1" ? "tutorial" : "game",
-                mission: modeTitle
-            });
-        });
+    this.scene.start(gameScene, {
+        role: character,
+        mode: modeTitle === "Misi 1" ? "tutorial" : "game",
+        mission: modeTitle
+    });
+});
         
         card.add(playBtn);
         
