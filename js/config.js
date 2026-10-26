@@ -6,6 +6,7 @@ import ModeSelectScene from "./scenes/mode-select-scene.js";
 import ProkaryoticGame from "./scenes/prokaryotic-game.js";
 import VirusGame from "./scenes/virus-game.js"; // ✅ TAMBAH INI
 import WBCGame from "./scenes/wbc-game.js";
+import CellDodgerScene from "./scenes/cell-dodger-scene.js"; // ✅ TAMBAH INI
 
 console.log("Loading config...");
 
@@ -22,7 +23,8 @@ const config = {
         ModeSelectScene,
         ProkaryoticGame,
         VirusGame,
-        WBCGame, // ✅ TAMBAH INI
+        WBCGame,
+        CellDodgerScene
     ],
     physics: {
         default: "arcade",

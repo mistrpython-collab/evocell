@@ -9,41 +9,37 @@ export default class ModeSelectScene extends Phaser.Scene {
         console.log("ModeSelectScene init - role:", this.selectedRole);
     }
     
-    create() {
+        create() {
         console.log("ModeSelectScene create started");
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        
-        // Background
+
         this.add.image(width / 2, height / 2, "bgMain");
-        
-        // Title
-        this.add.text(width / 2, 80, "Kampanye", {
-            font: "36px Arial",
+
+        this.add.text(width / 2, 60, "Pilih Misi", {
+            font: "bold 42px Arial",
             fill: "#00ff00",
             stroke: "#000000",
             strokeThickness: 4,
         }).setOrigin(0.5);
-        
-        // ✅ CARD 1 - TUTORIAL (Kiri) - Sesuaikan dengan role
-        const tutorialCharacter = this.selectedRole;
-        this.createModeCard(width / 2 - 280, height / 2 + 20, "Misi 1", tutorialCharacter, "Pelajari dasar-dasar");
-        
-        // ✅ CARD 2 - GAME (Kanan) - Sesuaikan dengan role
-        const gameCharacter = this.selectedRole;
-        this.createModeCard(width / 2 + 280, height / 2 + 20, "Misi 2", gameCharacter, "Mulai bermain");
-        
+
+        // ✅ KARTU 1: Misi 1 (Kiri)
+        this.createModeCard(width / 2 - 380, height / 2 + 20, "Misi 1", this.selectedRole, "Pelajari Dasar");
+
+        // ✅ KARTU 2: Misi 2 (Tengah)
+        this.createModeCard(width / 2, height / 2 + 20, "Misi 2", this.selectedRole, "Tantang Boss");
+
+        // ✅ KARTU 3: Misi 3 - CELL DODGER (Kanan)
+        this.createModeCard(width / 2 + 380, height / 2 + 20, "Misi 3", "dodger", "Hindari Rintangan");
+
         // Back Button
         const backButton = this.add.image(80, 60, "btnBack");
         backButton.setScale(0.35);
         backButton.setInteractive({ useHandCursor: true });
         backButton.on("pointerover", () => backButton.setScale(0.4));
         backButton.on("pointerout", () => backButton.setScale(0.35));
-        backButton.on("pointerdown", () => {
-            console.log("Back button clicked");
-            this.scene.start("MenuScene");
-        });
-        
+        backButton.on("pointerdown", () => this.scene.start("MenuScene"));
+
         console.log("ModeSelectScene create completed");
     }
     
@@ -80,17 +76,19 @@ export default class ModeSelectScene extends Phaser.Scene {
         playBtn.on("pointerout", () => playBtn.setScale(0.13));
         
         // ✅ PERBAIKAN: Arahkan ke scene yang sesuai dengan character
-        playBtn.on("pointerdown", () => {
+                playBtn.on("pointerdown", () => {
             console.log(modeTitle, "mode selected - character:", character);
             
-            // ✅ Pilih scene berdasarkan character
             let gameScene = 'ProkaryoticGame';
+            
             if (character === 'virus') {
                 gameScene = 'VirusGame';
             } else if (character === 'wbc') {
-                gameScene = 'WBCGame'; // Belum ada, nanti dibuat
+                gameScene = 'WBCGame';
+            } else if (character === 'dodger') { // ✅ TAMBAH INI
+                gameScene = 'CellDodgerScene';
             }
-            
+
             this.scene.start(gameScene, {
                 role: character,
                 mode: modeTitle === "Misi 1" ? "tutorial" : "game",
