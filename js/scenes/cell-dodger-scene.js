@@ -9,12 +9,14 @@ export default class CellDodgerScene extends Phaser.Scene {
         const height = this.cameras.main.height;
 
         // 1. Background
-        this.add.image(width / 2, height / 2, "bgMain").setAlpha(0.5);
+        this.add.image(width / 2, height / 2, "bggameplay").setAlpha(0.5);
 
         // 2. ✅ PLAYER - Gerakan 4 Arah
-        this.player = this.physics.add.sprite(width / 2, height / 2, "prokaryotic");
+        this.player = this.physics.add.sprite(width / 2, height - 100, "prokaryotic");
         this.player.setScale(2);
         this.player.setCollideWorldBounds(true);
+
+        
 
         // 3. ✅ GRUP RINTANGAN - Pakai Bakteri
         this.obstacles = this.physics.add.group();
@@ -140,18 +142,31 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
     }
 
-    spawnObstacle() {
-        const width = this.cameras.main.width;
-        const x = Phaser.Math.Between(50, width - 50);
-        
-        // ✅ PAKAI BAKTERI (bukan virus)
-        const obstacle = this.obstacles.create(x, -50, "bacteria"); 
-        obstacle.setScale(1.5);
-        obstacle.setVelocityY(Phaser.Math.Between(150, 300)); // Kecepatan acak
-
-        obstacle.checkWorldBounds = true;
-        obstacle.outOfBoundsKill = true;
-    }
+    // Ganti fungsi spawnObstacle() dengan ini:
+spawnObstacle() {
+    const width = this.cameras.main.width;
+    const x = Phaser.Math.Between(50, width - 50);
+    
+    // Spawn bakteri
+    const obstacle = this.obstacles.create(x, -50, "bacteria"); 
+    obstacle.setScale(.8);
+    
+    // ✅ Kecepatan jatuh acak
+    const fallSpeed = Phaser.Math.Between(150, 300);
+    
+    // ✅ Arah horizontal random (-1 = kiri, 1 = kanan)
+    const horizontalDirection = Phaser.Math.Between(0, 1) ? 1 : -1;
+    const horizontalSpeed = Phaser.Math.Between(50, 150);
+    
+    // Set velocity: jatuh + gerak horizontal
+    obstacle.setVelocity(horizontalDirection * horizontalSpeed, fallSpeed);
+    
+    // Rotasi acak untuk efek visual
+    obstacle.setAngle(Phaser.Math.Between(0, 360));
+    
+    obstacle.checkWorldBounds = true;
+    obstacle.outOfBoundsKill = true;
+}
 
     hitObstacle(player, obstacle) {
         this.physics.pause();
