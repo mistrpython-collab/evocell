@@ -8,24 +8,30 @@ export default class CellDodgerScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // 1. Background
-        // ✅ PAKAI KEY YANG BENAR (huruf G kapital)
-const bg = this.add.image(width / 2, height / 2, "bgGameplay");
-bg.setDisplaySize(height, width); // Swap untuk portrait
-bg.setAngle(-90); // Rotasi 90°
-bg.setDepth(-1); // Di belakang semua
+        // 1. Background Vertikal Full Screen
+        const bg = this.add.image(width / 2, height / 2, "bgGameplay");
+        bg.setAngle(-90);
+        bg.setScale(1.8);
+        bg.setDepth(-1);
 
-        // 2. ✅ PLAYER - Gerakan 4 Arah
+        // 2. Player di bawah tengah
         this.player = this.physics.add.sprite(width / 2, height - 100, "prokaryotic");
         this.player.setScale(2);
         this.player.setCollideWorldBounds(true);
 
-        
+        // 3. ✅ DAFTAR 5 JENIS BAKTERI (termasuk original hijau)
+        this.bacteriaTypes = [
+            'bacteria',          // Hijau original (yang lama)
+            'bacteriaBatang',    // Ungu, bentuk batang
+            'bacteriaSpiral',    // Biru, bentuk spiral
+            'bakteriRantai',     // Orange, bentuk rantai
+            'bakteriBulat'       // Hijau-kuning, bentuk bulat
+        ];
 
-        // 3. ✅ GRUP RINTANGAN - Pakai Bakteri
+        // 4. Grup Rintangan
         this.obstacles = this.physics.add.group();
 
-        // 4. Spawn Rintangan setiap 800ms (lebih cepat)
+        // 5. Spawn Rintangan setiap 800ms
         this.spawnEvent = this.time.addEvent({
             delay: 800,
             callback: this.spawnObstacle,
@@ -33,7 +39,7 @@ bg.setDepth(-1); // Di belakang semua
             loop: true
         });
 
-        // 5. ✅ KONTROL 4 ARAH (Keyboard)
+        // 6. Kontrol 4 Arah
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -42,7 +48,7 @@ bg.setDepth(-1); // Di belakang semua
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // 6. Instruksi
+        // 7. Instruksi
         this.add.text(width / 2, height - 40, "Gunakan WASD atau Panah untuk bergerak!", {
             font: "18px Arial",
             fill: "#ffffff",
@@ -50,31 +56,26 @@ bg.setDepth(-1); // Di belakang semua
             strokeThickness: 3
         }).setOrigin(0.5);
 
-        // 7. Tombol Pause (Kanan Atas)
+        // 8. Tombol Pause
         this.createPauseButton();
 
-        // 8. Pause Menu
+        // 9. Pause Menu
         this.createPauseMenu();
 
-        // 9. Cek Tabrakan
+        // 10. Cek Tabrakan
         this.physics.add.collider(this.player, this.obstacles, this.hitObstacle, null, this);
 
-        // State pause
         this.isPaused = false;
-
-        // 10. ✅ Skor & Difficulty
         this.score = 0;
         this.difficultyTimer = 0;
     }
 
     createPauseButton() {
         const width = this.cameras.main.width;
-        
         this.pauseBtn = this.add.image(width - 60, 60, "pause-btn");
         this.pauseBtn.setScale(0.5);
         this.pauseBtn.setDepth(100);
         this.pauseBtn.setInteractive({ useHandCursor: true });
-        
         this.pauseBtn.on("pointerover", () => this.pauseBtn.setScale(0.6));
         this.pauseBtn.on("pointerout", () => this.pauseBtn.setScale(0.5));
         this.pauseBtn.on("pointerdown", () => this.togglePause());
@@ -96,7 +97,6 @@ bg.setDepth(-1); // Di belakang semua
         this.resumeBtn = this.add.image(width / 2, height / 2 - 50, "resume-btn");
         this.resumeBtn.setDisplaySize(280, 80);
         this.resumeBtn.setInteractive({ useHandCursor: true });
-        
         this.resumeBtn.on("pointerover", () => this.resumeBtn.setDisplaySize(300, 86));
         this.resumeBtn.on("pointerout", () => this.resumeBtn.setDisplaySize(280, 80));
         this.resumeBtn.on("pointerdown", () => this.togglePause());
@@ -105,7 +105,6 @@ bg.setDepth(-1); // Di belakang semua
         this.exitBtn = this.add.image(width / 2, height / 2 + 60, "exit-btn");
         this.exitBtn.setDisplaySize(280, 80);
         this.exitBtn.setInteractive({ useHandCursor: true });
-        
         this.exitBtn.on("pointerover", () => this.exitBtn.setDisplaySize(300, 86));
         this.exitBtn.on("pointerout", () => this.exitBtn.setDisplaySize(280, 80));
         this.exitBtn.on("pointerdown", () => {
@@ -117,60 +116,62 @@ bg.setDepth(-1); // Di belakang semua
     update() {
         if (this.isPaused) return;
 
-        // ✅ GERAKAN 4 ARAH
         const speed = 300;
         let velocityX = 0;
         let velocityY = 0;
 
-        // Kiri/Kanan
         if (this.cursors.left.isDown || this.keys.left.isDown) {
             velocityX = -speed;
         } else if (this.cursors.right.isDown || this.keys.right.isDown) {
             velocityX = speed;
         }
 
-        // Atas/Bawah
         if (this.cursors.up.isDown || this.keys.up.isDown) {
             velocityY = -speed;
         } else if (this.cursors.down.isDown || this.keys.down.isDown) {
             velocityY = speed;
         }
 
-        // Set velocity
         this.player.setVelocity(velocityX, velocityY);
 
-        // ✅ Tingkatkan kesulitan seiring waktu
         this.difficultyTimer++;
-        if (this.difficultyTimer % 600 === 0) { // Setiap 10 detik (60fps * 10)
-            this.spawnEvent.delay = Math.max(300, this.spawnEvent.delay - 100); // Spawn lebih cepat, min 300ms
+        if (this.difficultyTimer % 600 === 0) {
+            this.spawnEvent.delay = Math.max(300, this.spawnEvent.delay - 100);
         }
     }
 
-    // Ganti fungsi spawnObstacle() dengan ini:
-spawnObstacle() {
-    const width = this.cameras.main.width;
-    const x = Phaser.Math.Between(50, width - 50);
-    
-    // Spawn bakteri
-    const obstacle = this.obstacles.create(x, -50, "bacteria"); 
-    obstacle.setScale(.8);
-    
-    // ✅ Kecepatan jatuh acak
-    const fallSpeed = Phaser.Math.Between(150, 300);
-    
-    // ✅ Arah horizontal random (-1 = kiri, 1 = kanan)
-    const horizontalDirection = Phaser.Math.Between(0, 1) ? 1 : -1;
-    const horizontalSpeed = Phaser.Math.Between(50, 150);
-    
-    // Set velocity: jatuh + gerak horizontal
-    obstacle.setVelocity(horizontalDirection * horizontalSpeed, fallSpeed);
-    
-    // Rotasi acak untuk efek visual
-    obstacle.setAngle(Phaser.Math.Between(0, 360));
-    
-    obstacle.checkWorldBounds = true;
-    obstacle.outOfBoundsKill = true;
-}
+    spawnObstacle() {
+        const width = this.cameras.main.width;
+        const x = Phaser.Math.Between(50, width - 50);
+        
+        const randomIndex = Phaser.Math.Between(0, this.bacteriaTypes.length - 1);
+        const bacteriaKey = this.bacteriaTypes[randomIndex];
+        
+        const obstacle = this.obstacles.create(x, -50, bacteriaKey);
+        
+        // ✅ SCALE LEBIH KECIL - Semua bakteri seukuran
+        if (bacteriaKey === 'bakteriBulat') {
+            obstacle.setScale(0.04); // Paling kecil
+        } else if (bacteriaKey === 'bakteriRantai') {
+            obstacle.setScale(0.05);
+        } else if (bacteriaKey === 'bacteriaSpiral') {
+            obstacle.setScale(0.05);
+        } else if (bacteriaKey === 'bacteriaBatang') {
+            obstacle.setScale(0.04);
+        } else {
+            obstacle.setScale(0.8); // bacteria (original hijau) - ukurannya sudah pas
+        }
+        
+        const fallSpeed = Phaser.Math.Between(150, 300);
+        const horizontalDirection = Phaser.Math.Between(0, 1) ? 1 : -1;
+        const horizontalSpeed = Phaser.Math.Between(50, 150);
+        
+        obstacle.setVelocity(horizontalDirection * horizontalSpeed, fallSpeed);
+        obstacle.setAngle(Phaser.Math.Between(0, 360));
+        
+        obstacle.checkWorldBounds = true;
+        obstacle.outOfBoundsKill = true;
+    }
 
     hitObstacle(player, obstacle) {
         this.physics.pause();
