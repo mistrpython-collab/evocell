@@ -43,6 +43,10 @@ export default class BootScene extends Phaser.Scene {
         
         // ✅ BACKGROUND VIRUS - Pastikan path benar
         this.load.image('bgVirus', 'assets/images/scene-evocell/human-imune-system.png');
+        this.load.image('bacteriaBatang', 'assets/images/bacteria/bacteria-batang.png');
+this.load.image('bacteriaSpiral', 'assets/images/bacteria/bacteria-spiral.png');
+this.load.image('bakteriRantai', 'assets/images/bacteria/bakteri-rantai.png');
+this.load.image('bakteriBulat', 'assets/images/bacteria/bakteri-bulat.png');
         
         // Card & Button
         this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');
