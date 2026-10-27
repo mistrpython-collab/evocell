@@ -11,31 +11,33 @@ export default class CellDodgerScene extends Phaser.Scene {
         // 1. Background
         this.add.image(width / 2, height / 2, "bgMain").setAlpha(0.5);
 
-        // 2. Player
-        this.player = this.physics.add.sprite(width / 2, height - 100, "prokaryotic");
+        // 2. ✅ PLAYER - Gerakan 4 Arah
+        this.player = this.physics.add.sprite(width / 2, height / 2, "prokaryotic");
         this.player.setScale(2);
         this.player.setCollideWorldBounds(true);
 
-        // 3. Grup Rintangan
+        // 3. ✅ GRUP RINTANGAN - Pakai Bakteri
         this.obstacles = this.physics.add.group();
 
-        // 4. Spawn Rintangan setiap 1 detik
+        // 4. Spawn Rintangan setiap 800ms (lebih cepat)
         this.spawnEvent = this.time.addEvent({
-            delay: 1000,
+            delay: 800,
             callback: this.spawnObstacle,
             callbackScope: this,
             loop: true
         });
 
-        // 5. Kontrol Keyboard
+        // 5. ✅ KONTROL 4 ARAH (Keyboard)
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys({
+            up: Phaser.Input.Keyboard.KeyCodes.W,
+            down: Phaser.Input.Keyboard.KeyCodes.S,
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
         // 6. Instruksi
-        this.add.text(width / 2, height - 40, "Gunakan Panah Kiri/Kanan atau A/D untuk menghindar!", {
+        this.add.text(width / 2, height - 40, "Gunakan WASD atau Panah untuk bergerak!", {
             font: "18px Arial",
             fill: "#ffffff",
             stroke: "#000000",
@@ -53,6 +55,10 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // State pause
         this.isPaused = false;
+
+        // 10. ✅ Skor & Difficulty
+        this.score = 0;
+        this.difficultyTimer = 0;
     }
 
     createPauseButton() {
@@ -72,21 +78,17 @@ export default class CellDodgerScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Container untuk menu pause
         this.pauseMenu = this.add.container(0, 0).setDepth(500).setVisible(false);
 
-        // Background gelap transparan (overlay)
         const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75);
         this.pauseMenu.add(overlay);
 
-        // ✅ CARD ROCK - Landscape (seperti di Misi 2)
         const cardRock = this.add.image(width / 2, height / 2, "cardRock");
-        cardRock.setDisplaySize(520, 400); // Lebar > Tinggi = Landscape
+        cardRock.setDisplaySize(520, 400);
         this.pauseMenu.add(cardRock);
 
-        // ✅ TOMBOL RESUME
         this.resumeBtn = this.add.image(width / 2, height / 2 - 50, "resume-btn");
-        this.resumeBtn.setDisplaySize(280, 80); // Ukuran fixed agar seimbang
+        this.resumeBtn.setDisplaySize(280, 80);
         this.resumeBtn.setInteractive({ useHandCursor: true });
         
         this.resumeBtn.on("pointerover", () => this.resumeBtn.setDisplaySize(300, 86));
@@ -94,9 +96,8 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.resumeBtn.on("pointerdown", () => this.togglePause());
         this.pauseMenu.add(this.resumeBtn);
 
-        // ✅ TOMBOL EXIT
         this.exitBtn = this.add.image(width / 2, height / 2 + 60, "exit-btn");
-        this.exitBtn.setDisplaySize(280, 80); // SAMAA dengan Resume
+        this.exitBtn.setDisplaySize(280, 80);
         this.exitBtn.setInteractive({ useHandCursor: true });
         
         this.exitBtn.on("pointerover", () => this.exitBtn.setDisplaySize(300, 86));
@@ -107,31 +108,35 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.pauseMenu.add(this.exitBtn);
     }
 
-    togglePause() {
-        this.isPaused = !this.isPaused;
-
-        if (this.isPaused) {
-            this.physics.pause();
-            this.spawnEvent.paused = true;
-            this.pauseMenu.setVisible(true);
-            this.pauseBtn.setVisible(false);
-        } else {
-            this.physics.resume();
-            this.spawnEvent.paused = false;
-            this.pauseMenu.setVisible(false);
-            this.pauseBtn.setVisible(true);
-        }
-    }
-
     update() {
         if (this.isPaused) return;
 
+        // ✅ GERAKAN 4 ARAH
+        const speed = 300;
+        let velocityX = 0;
+        let velocityY = 0;
+
+        // Kiri/Kanan
         if (this.cursors.left.isDown || this.keys.left.isDown) {
-            this.player.setVelocityX(-300);
+            velocityX = -speed;
         } else if (this.cursors.right.isDown || this.keys.right.isDown) {
-            this.player.setVelocityX(300);
-        } else {
-            this.player.setVelocityX(0);
+            velocityX = speed;
+        }
+
+        // Atas/Bawah
+        if (this.cursors.up.isDown || this.keys.up.isDown) {
+            velocityY = -speed;
+        } else if (this.cursors.down.isDown || this.keys.down.isDown) {
+            velocityY = speed;
+        }
+
+        // Set velocity
+        this.player.setVelocity(velocityX, velocityY);
+
+        // ✅ Tingkatkan kesulitan seiring waktu
+        this.difficultyTimer++;
+        if (this.difficultyTimer % 600 === 0) { // Setiap 10 detik (60fps * 10)
+            this.spawnEvent.delay = Math.max(300, this.spawnEvent.delay - 100); // Spawn lebih cepat, min 300ms
         }
     }
 
@@ -139,9 +144,10 @@ export default class CellDodgerScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const x = Phaser.Math.Between(50, width - 50);
         
-        const obstacle = this.obstacles.create(x, -50, "virus"); 
+        // ✅ PAKAI BAKTERI (bukan virus)
+        const obstacle = this.obstacles.create(x, -50, "bacteria"); 
         obstacle.setScale(1.5);
-        obstacle.setVelocityY(200);
+        obstacle.setVelocityY(Phaser.Math.Between(150, 300)); // Kecepatan acak
 
         obstacle.checkWorldBounds = true;
         obstacle.outOfBoundsKill = true;
@@ -172,5 +178,21 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.input.once("pointerdown", () => {
             this.scene.start("MenuScene");
         });
+    }
+
+    togglePause() {
+        this.isPaused = !this.isPaused;
+
+        if (this.isPaused) {
+            this.physics.pause();
+            this.spawnEvent.paused = true;
+            this.pauseMenu.setVisible(true);
+            this.pauseBtn.setVisible(false);
+        } else {
+            this.physics.resume();
+            this.spawnEvent.paused = false;
+            this.pauseMenu.setVisible(false);
+            this.pauseBtn.setVisible(true);
+        }
     }
 }
