@@ -9,7 +9,11 @@ export default class CellDodgerScene extends Phaser.Scene {
         const height = this.cameras.main.height;
 
         // 1. Background
-        this.add.image(width / 2, height / 2, "bggameplay").setAlpha(0.5);
+        // ✅ PAKAI KEY YANG BENAR (huruf G kapital)
+const bg = this.add.image(width / 2, height / 2, "bgGameplay");
+bg.setDisplaySize(height, width); // Swap untuk portrait
+bg.setAngle(-90); // Rotasi 90°
+bg.setDepth(-1); // Di belakang semua
 
         // 2. ✅ PLAYER - Gerakan 4 Arah
         this.player = this.physics.add.sprite(width / 2, height - 100, "prokaryotic");
