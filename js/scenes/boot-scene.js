@@ -54,6 +54,18 @@ this.load.image('bakteriBulat', 'assets/images/bacteria/bakteri-bulat.png');
         this.load.image('pause-btn', 'assets/images/main-menu-evocell/pause-btn.png');
         this.load.image('resume-btn', 'assets/images/main-menu-evocell/resume-btn.png');
         this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
+
+        // ... kode yang sudah ada ...
+
+// ✅ ICON DEVICE SELECTOR
+this.load.image('pcIcon', 'assets/images/main-menu-evocell/pc-ikon.png');
+this.load.image('laptopIcon', 'assets/images/main-menu-evocell/laptop-ikon.png');
+this.load.image('mobileIcon', 'assets/images/main-menu-evocell/hp-ikon.png');
+
+// ✅ ICON HUD KONTROL
+this.load.image('wasdIcon', 'assets/images/main-menu-evocell/wasd-ikon.png');
+this.load.image('cursorIcon', 'assets/images/main-menu-evocell/cursor-ikon.png');
+this.load.image('autoLockIcon', 'assets/images/main-menu-evocell/auto-lock.png');
     }
     
     create() {
