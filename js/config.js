@@ -7,6 +7,7 @@ import ProkaryoticGame from "./scenes/prokaryotic-game.js";
 import VirusGame from "./scenes/virus-game.js"; // ✅ TAMBAH INI
 import WBCGame from "./scenes/wbc-game.js";
 import CellDodgerScene from "./scenes/cell-dodger-scene.js"; // ✅ TAMBAH INI
+import DeviceModeScene from "./scenes/device-mode-scene.js"; // ✅ TAMBAHKAN INI!
 
 console.log("Loading config...");
 
@@ -20,6 +21,7 @@ const config = {
         BootScene,
         IntroScene,
         MenuScene,
+        DeviceModeScene,       // ✅ TAMBAHKAN INI
         ModeSelectScene,
         ProkaryoticGame,
         VirusGame,

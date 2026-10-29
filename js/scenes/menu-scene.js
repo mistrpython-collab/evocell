@@ -71,6 +71,27 @@ logo.setScale(0.3);  // Lebih kecil lagi
             console.log('Campaign clicked - role:', this.roles[this.selectedRole]);
             this.scene.start('ModeSelectScene', { role: this.roles[this.selectedRole] });
         });
+
+        // ✅ PASTE KODE DEVICE MODE DI SINI (antara baris 86 dan 88)
+        const deviceModeBtn = this.add.text(60, height - 120, '⚙️ Device Mode', {
+            font: 'bold 20px Arial',
+            fill: '#aaaaaa',
+            backgroundColor: '#111111',
+            padding: { x: 15, y: 10 }
+        });
+        deviceModeBtn.setOrigin(0, 0.5);
+        deviceModeBtn.setInteractive({ useHandCursor: true });
+        
+        deviceModeBtn.on('pointerover', () => {
+            deviceModeBtn.setStyle({ fill: '#00ffff', backgroundColor: '#222222' });
+        });
+        deviceModeBtn.on('pointerout', () => {
+            deviceModeBtn.setStyle({ fill: '#aaaaaa', backgroundColor: '#111111' });
+        });
+        
+        deviceModeBtn.on('pointerdown', () => {
+            this.scene.start('DeviceModeScene');
+        });
         
         console.log('MenuScene create completed');
     }
