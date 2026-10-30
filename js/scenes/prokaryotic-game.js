@@ -1,7 +1,10 @@
 // prokaryotic-game.js - LENGKAP: 3 Boss + Cursor Smooth + Dash Jauh + Shooter 4 Bola + Chaser Nembak
+import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN: Import fullscreen
+
 export default class ProkaryoticGame extends Phaser.Scene {
     constructor() {
         super('ProkaryoticGame');
+        this.fullscreenBtn = null; // ✅ TAMBAHAN: Variabel tombol fullscreen
     }
 
     init(data) {
@@ -124,6 +127,9 @@ export default class ProkaryoticGame extends Phaser.Scene {
             }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(3000, () => missionText.destroy());
         }
+
+        // ✅ TAMBAHAN: Buat tombol fullscreen di tengah atas
+        this.createFullscreenButton(width, height);
     }
 
     update() {
@@ -434,6 +440,64 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.isGameOver = true;
         this.add.text(640, 300, 'GAME OVER', { font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8 }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
+    }
+
+    // ✅ TAMBAHAN: Fungsi membuat tombol Fullscreen di tengah atas
+    createFullscreenButton(width, height) {
+        if (!fullscreenManager.supportsFullscreen) return;
+
+        const btnX = width / 2; // Posisi TENGAH
+        const btnY = 60;        // Posisi ATAS (aman, tidak menutupi gameplay)
+
+        this.fullscreenBtn = this.add.text(btnX, btnY, '⛶', {
+            font: 'bold 28px Arial',
+            fill: '#00ff00',
+            stroke: '#00cc00',
+            strokeThickness: 3,
+            backgroundColor: '#001a00',
+            padding: { x: 12, y: 8 }
+        });
+        this.fullscreenBtn.setOrigin(0.5);
+        this.fullscreenBtn.setDepth(1000); // Pastikan di atas segalanya
+        this.fullscreenBtn.setInteractive({ useHandCursor: true });
+
+        this.fullscreenBtn.on('pointerover', () => {
+            this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' });
+        });
+        this.fullscreenBtn.on('pointerout', () => {
+            this.fullscreenBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' });
+        });
+
+        this.fullscreenBtn.on('pointerdown', () => {
+            fullscreenManager.toggleFullscreen();
+        });
+
+        this.updateFullscreenButtonIcon();
+        
+        window.addEventListener('fullscreenchange', () => this.updateFullscreenButtonIcon());
+        window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
+    }
+
+    // ✅ TAMBAHAN: Fungsi update icon tombol
+    updateFullscreenButtonIcon() {
+        if (!this.fullscreenBtn) return;
+        const isFullscreen = fullscreenManager.getStatus();
+
+        if (isFullscreen) {
+            this.fullscreenBtn.setText('✕');
+            this.fullscreenBtn.setStyle({
+                fill: '#ff4444',
+                stroke: '#cc0000',
+                backgroundColor: '#330000'
+            });
+        } else {
+            this.fullscreenBtn.setText('⛶');
+            this.fullscreenBtn.setStyle({
+                fill: '#00ff00',
+                stroke: '#00cc00',
+                backgroundColor: '#001a00'
+            });
+        }
     }
 }
 
@@ -791,7 +855,6 @@ class BossBacteriaYellow extends Phaser.Physics.Arcade.Sprite {
         this.scene.cameras.main.shake(300, 0.02);
         this.dashTrail = this.scene.add.graphics().setDepth(3);
         
-        // ✅ UPDATE: Dash duration dinaikkan dari 250ms ke 450ms agar jarak dash lebih jauh
         this.scene.time.delayedCall(450, () => {
             if (this.active) {
                 this.isDashing = false;
@@ -910,7 +973,6 @@ class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
         });
     }
     
-    // ✅ UPDATE: Tembak 4 bola sekaligus dengan pola penyebaran (spread shot)
     shoot() {
         this.isCharging = false;
         this.lastShootTime = Date.now();
@@ -920,21 +982,17 @@ class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
         const player = this.gameScene.player;
         if (player && player.active) {
             const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-            const spread = 0.25; // Sudut penyebaran (~14 derajat)
+            const spread = 0.25;
             
-            // Bola 1: Paling kiri
             const proj1 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 1.5);
             this.gameScene.projectiles.add(proj1);
             
-            // Bola 2: Kiri tengah
             const proj2 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 0.5);
             this.gameScene.projectiles.add(proj2);
             
-            // Bola 3: Kanan tengah
             const proj3 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 0.5);
             this.gameScene.projectiles.add(proj3);
             
-            // Bola 4: Paling kanan
             const proj4 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 1.5);
             this.gameScene.projectiles.add(proj4);
         }
@@ -964,8 +1022,7 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
         
-        // ✅ Tambahan: Kemampuan menembak sangat lambat
-        this.shootCooldown = 8000; // 8 detik reload (sangat lambat)
+        this.shootCooldown = 8000;
         this.lastShootTime = Date.now();
         this.isCharging = false;
         this.blinkTween = null;
@@ -975,15 +1032,12 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
     updateAI() {
         if (!this.body || !this.active) return;
         
-        // ✅ Logika menembak lambat
         const currentTime = Date.now();
         const timeSinceLastShoot = currentTime - this.lastShootTime;
         
-        // Mulai charging 2 detik sebelum tembak (peringatan)
         if (timeSinceLastShoot >= 6000 && !this.isCharging) { 
             this.startCharging(); 
         }
-        // Tembak setelah 8 detik
         if (timeSinceLastShoot >= this.shootCooldown && this.isCharging) { 
             this.shoot(); 
         }
@@ -1012,7 +1066,7 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
             onUpdate: (tween) => {
                 if (!this.active) return;
                 const val = Math.floor(tween.getValue());
-                this.setTint(val % 2 === 0 ? 0xFFAA00 : 0xFF0000); // Berkedip orange-merah
+                this.setTint(val % 2 === 0 ? 0xFFAA00 : 0xFF0000);
             },
             onComplete: () => { if (this.active) this.setTint(0xFF0000); }
         });
@@ -1027,7 +1081,6 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         const player = this.gameScene.player;
         if (player && player.active) {
             const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
-            // Hanya tembak 1 bola
             const projectile = new YellowBall(this.scene, this.x, this.y, angle);
             this.gameScene.projectiles.add(projectile);
         }
