@@ -1,7 +1,10 @@
-// js/scenes/device-mode-scene.js
+// device-mode-scene.js - Pilih Mode Perangkat
+import { fullscreenManager } from '../utils/fullscreen.js';
+
 export default class DeviceModeScene extends Phaser.Scene {
     constructor() {
         super('DeviceModeScene');
+        this.fullscreenBtn = null;
     }
 
     create() {
@@ -9,16 +12,16 @@ export default class DeviceModeScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // 1. Background
+        // Background
         const bg = this.add.image(width / 2, height / 2, 'bgMain');
         bg.setDisplaySize(width, height);
         bg.setDepth(-1);
 
-        // 2. Overlay gelap
+        // Overlay gelap
         const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3);
         overlay.setDepth(0);
 
-        // 3. Judul
+        // Judul
         this.add.text(width / 2, 90, 'PILIH MODE PERANGKAT', {
             font: 'bold 48px Arial',
             fill: '#00ffff',
@@ -26,7 +29,7 @@ export default class DeviceModeScene extends Phaser.Scene {
             strokeThickness: 6
         }).setOrigin(0.5).setDepth(10);
 
-        // 4. Subtitle
+        // Subtitle
         this.add.text(width / 2, 140, 'Pilih sesuai perangkat yang kamu gunakan', {
             font: '20px Arial',
             fill: '#cccccc',
@@ -34,27 +37,26 @@ export default class DeviceModeScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5).setDepth(10);
 
-        // 5. LOGIKA AUTO-DETECT
+        // State: auto-detect atau load dari localStorage
         let savedDevice = localStorage.getItem('evocell_device');
         
         if (!savedDevice) {
-            // Jika belum pernah pilih, jalankan auto-detect!
             savedDevice = this.autoDetectDevice();
-            console.log('🤖 Auto-detected device:', savedDevice);
+            console.log(' Auto-detected device:', savedDevice);
         } else {
             console.log('💾 Loaded saved device:', savedDevice);
         }
 
         this.currentDevice = savedDevice;
 
-        // 6. Data card
+        // Data card
         const cardData = [
             { key: 'pc', x: width/2 - 260, y: height/2 + 20, icon: 'pcIcon' },
             { key: 'laptop', x: width/2, y: height/2 + 20, icon: 'laptopIcon' },
             { key: 'mobile', x: width/2 + 260, y: height/2 + 20, icon: 'mobileIcon' }
         ];
 
-        // 7. Buat card
+        // Buat card
         this.cards = {};
         cardData.forEach(data => {
             const cardBg = this.add.image(data.x, data.y, 'cardRock');
@@ -70,13 +72,37 @@ export default class DeviceModeScene extends Phaser.Scene {
 
             // Hover effect
             cardBg.on('pointerover', () => {
-                this.tweens.add({ targets: cardBg, displayWidth: 242, displayHeight: 220, duration: 150, ease: 'Power2' });
-                this.tweens.add({ targets: icon, displayWidth: 198, displayHeight: 154, duration: 150, ease: 'Power2' });
+                this.tweens.add({
+                    targets: cardBg,
+                    displayWidth: 242,
+                    displayHeight: 220,
+                    duration: 150,
+                    ease: 'Power2'
+                });
+                this.tweens.add({
+                    targets: icon,
+                    displayWidth: 198,
+                    displayHeight: 154,
+                    duration: 150,
+                    ease: 'Power2'
+                });
             });
 
             cardBg.on('pointerout', () => {
-                this.tweens.add({ targets: cardBg, displayWidth: 220, displayHeight: 200, duration: 150, ease: 'Power2' });
-                this.tweens.add({ targets: icon, displayWidth: 180, displayHeight: 140, duration: 150, ease: 'Power2' });
+                this.tweens.add({
+                    targets: cardBg,
+                    displayWidth: 220,
+                    displayHeight: 200,
+                    duration: 150,
+                    ease: 'Power2'
+                });
+                this.tweens.add({
+                    targets: icon,
+                    displayWidth: 180,
+                    displayHeight: 140,
+                    duration: 150,
+                    ease: 'Power2'
+                });
             });
 
             // Klik card
@@ -88,12 +114,12 @@ export default class DeviceModeScene extends Phaser.Scene {
             this.cards[data.key] = { bg: cardBg, icon: icon };
         });
 
-        // 8. Apply highlight ke device yang terdetek/tersimpan
+        // Apply highlight ke device yang terdetek/tersimpan
         if (this.currentDevice) {
             this.applyYellowHighlight(this.currentDevice);
         }
 
-        // 9. Tombol Back
+        // Tombol Back (Kiri Atas)
         const backBtn = this.add.image(80, 60, 'btnBack');
         backBtn.setScale(0.4);
         backBtn.setDepth(1000);
@@ -102,24 +128,80 @@ export default class DeviceModeScene extends Phaser.Scene {
         backBtn.on('pointerover', () => backBtn.setScale(0.45));
         backBtn.on('pointerout', () => backBtn.setScale(0.4));
 
+        // ✅ TOMBOL FULLSCREEN (Kanan Atas)
+        this.createFullscreenButton(width, height);
+
         console.log('=== DeviceModeScene READY ===');
     }
 
-    // ✅ FUNGSI AUTO-DETECT DEVICE
+    // Fungsi membuat tombol Fullscreen
+    createFullscreenButton(width, height) {
+        if (!fullscreenManager.supportsFullscreen) return;
+
+        const btnX = width - 60;
+        const btnY = 60;
+
+        this.fullscreenBtn = this.add.text(btnX, btnY, '', {
+            font: 'bold 28px Arial',
+            fill: '#00ff00',
+            stroke: '#00cc00',
+            strokeThickness: 3,
+            backgroundColor: '#001a00',
+            padding: { x: 12, y: 8 }
+        });
+        this.fullscreenBtn.setOrigin(0.5);
+        this.fullscreenBtn.setDepth(1000);
+        this.fullscreenBtn.setInteractive({ useHandCursor: true });
+
+        this.fullscreenBtn.on('pointerover', () => {
+            this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' });
+        });
+        this.fullscreenBtn.on('pointerout', () => {
+            this.fullscreenBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' });
+        });
+
+        this.fullscreenBtn.on('pointerdown', () => {
+            fullscreenManager.toggleFullscreen();
+        });
+
+        this.updateFullscreenButtonIcon();
+        
+        window.addEventListener('fullscreenchange', () => this.updateFullscreenButtonIcon());
+        window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
+    }
+
+    updateFullscreenButtonIcon() {
+        if (!this.fullscreenBtn) return;
+
+        const isFullscreen = fullscreenManager.getStatus();
+
+        if (isFullscreen) {
+            this.fullscreenBtn.setText('✕');
+            this.fullscreenBtn.setStyle({
+                fill: '#ff4444',
+                stroke: '#cc0000',
+                backgroundColor: '#330000'
+            });
+        } else {
+            this.fullscreenBtn.setText('⛶');
+            this.fullscreenBtn.setStyle({
+                fill: '#00ff00',
+                stroke: '#00cc00',
+                backgroundColor: '#001a00'
+            });
+        }
+    }
+
+    // Auto-detect device
     autoDetectDevice() {
         const ua = navigator.userAgent;
         const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua);
         const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         
-        // Deteksi Mobile/Tablet
-        // Jika user agent mobile ATAU (punya touch screen DAN layar kecil < 1024px)
         if (isMobileUA || (hasTouch && window.innerWidth < 1024)) {
             return 'mobile';
         }
 
-        // Deteksi Desktop (PC/Laptop)
-        // Default ke 'laptop' (Auto-aim) karena lebih aman untuk game kasual.
-        // User yang punya mouse bisa manual pilih 'PC' nanti.
         return 'laptop';
     }
 
@@ -132,7 +214,7 @@ export default class DeviceModeScene extends Phaser.Scene {
 
         const card = this.cards[deviceKey];
         if (card) {
-            card.bg.setTint(0xffff00); // Hanya cardRock yang kuning
+            card.bg.setTint(0xffff00);
             console.log('Highlight applied to:', deviceKey);
         }
     }
@@ -149,13 +231,19 @@ export default class DeviceModeScene extends Phaser.Scene {
         if (card) {
             this.tweens.add({
                 targets: card.bg,
-                displayWidth: 250, displayHeight: 230,
-                duration: 150, yoyo: true, ease: 'Power2'
+                displayWidth: 250,
+                displayHeight: 230,
+                duration: 150,
+                yoyo: true,
+                ease: 'Power2'
             });
             this.tweens.add({
                 targets: card.icon,
-                displayWidth: 210, displayHeight: 165,
-                duration: 150, yoyo: true, ease: 'Power2'
+                displayWidth: 210,
+                displayHeight: 165,
+                duration: 150,
+                yoyo: true,
+                ease: 'Power2'
             });
         }
     }
