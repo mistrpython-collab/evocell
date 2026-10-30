@@ -1,7 +1,10 @@
 // virus-game.js - Gameplay Virus (Dash Bisa Infect)
+import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN 1: Import fullscreen
+
 export default class VirusGame extends Phaser.Scene {
     constructor() {
         super('VirusGame');
+        this.fullscreenBtn = null; // ✅ TAMBAHAN 2: Variabel tombol fullscreen
     }
 
     init(data) {
@@ -102,6 +105,9 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 48px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
+
+        // ✅ TAMBAHAN 3: Panggil fungsi buat tombol fullscreen
+        this.createFullscreenButton(width, height);
     }
 
     update() {
@@ -308,6 +314,64 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
+    }
+
+    // ✅ TAMBAHAN 4: Fungsi membuat tombol Fullscreen di tengah atas
+    createFullscreenButton(width, height) {
+        if (!fullscreenManager.supportsFullscreen) return;
+
+        const btnX = width / 2;
+        const btnY = 60;
+
+        this.fullscreenBtn = this.add.text(btnX, btnY, '', {
+            font: 'bold 28px Arial',
+            fill: '#00ff00',
+            stroke: '#00cc00',
+            strokeThickness: 3,
+            backgroundColor: '#001a00',
+            padding: { x: 12, y: 8 }
+        });
+        this.fullscreenBtn.setOrigin(0.5);
+        this.fullscreenBtn.setDepth(1000);
+        this.fullscreenBtn.setInteractive({ useHandCursor: true });
+
+        this.fullscreenBtn.on('pointerover', () => {
+            this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' });
+        });
+        this.fullscreenBtn.on('pointerout', () => {
+            this.fullscreenBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' });
+        });
+
+        this.fullscreenBtn.on('pointerdown', () => {
+            fullscreenManager.toggleFullscreen();
+        });
+
+        this.updateFullscreenButtonIcon();
+        
+        window.addEventListener('fullscreenchange', () => this.updateFullscreenButtonIcon());
+        window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
+    }
+
+    // ✅ TAMBAHAN 5: Fungsi update icon tombol
+    updateFullscreenButtonIcon() {
+        if (!this.fullscreenBtn) return;
+        const isFullscreen = fullscreenManager.getStatus();
+
+        if (isFullscreen) {
+            this.fullscreenBtn.setText('✕');
+            this.fullscreenBtn.setStyle({
+                fill: '#ff4444',
+                stroke: '#cc0000',
+                backgroundColor: '#330000'
+            });
+        } else {
+            this.fullscreenBtn.setText('⛶');
+            this.fullscreenBtn.setStyle({
+                fill: '#00ff00',
+                stroke: '#00cc00',
+                backgroundColor: '#001a00'
+            });
+        }
     }
 }
 
