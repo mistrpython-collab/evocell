@@ -1,6 +1,7 @@
 // menu-scene.js - Main menu dengan LOGO GAMBAR EvoCell
+// Di baris 1-3, tambahkan:
 import { fullscreenManager } from '../utils/fullscreen.js';
-import { getLang, createLanguageSwitch } from '../utils/translations.js'; // ✅ GANTI createLanguageToggle jadi createLanguageSwitch
+import { getLang, createLanguageSwitch } from '../utils/translations.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
