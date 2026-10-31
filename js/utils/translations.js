@@ -138,18 +138,22 @@ export function createLanguageSwitch(scene, x, y) {
     track.strokeRoundedRect(-switchWidth/2, -switchHeight/2, switchWidth, switchHeight, 18);
     container.add(track);
     
-    const enLabel = scene.add.text(-switchWidth/2 + 22, 0, 'ID', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
-    container.add(enLabel);
+    const enLabel = scene.add.text(-switchWidth/2 + 22, 0, 'EN', { 
+    font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 
+}).setOrigin(0.5);
+container.add(enLabel);
     
-    const idLabel = scene.add.text(switchWidth/2 - 22, 0, 'EN', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
-    container.add(idLabel);
+    const idLabel = scene.add.text(switchWidth/2 - 22, 0, 'ID', { 
+    font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 
+}).setOrigin(0.5);
+container.add(idLabel);
     
     const knobX = currentLang === 'en' ? -knobOffset : knobOffset;
     const knob = scene.add.graphics();
-    knob.fillStyle(0x00ff00, 1);
-    knob.fillCircle(knobX, 0, knobRadius);
-    knob.lineStyle(2, 0x00cc00, 1);
-    knob.strokeCircle(knobX, 0, knobRadius);
+// Knob kosong dengan outline hijau terang
+knob.lineStyle(3, 0x00ff00, 1);  // Outline hijau tebal 3px
+knob.strokeCircle(knobX, 0, knobRadius);
+// Isi transparan (tidak ada fill)
     container.add(knob);
     
     const hitArea = new Phaser.Geom.Rectangle(-switchWidth/2, -switchHeight/2, switchWidth, switchHeight);
@@ -159,7 +163,7 @@ export function createLanguageSwitch(scene, x, y) {
         const oldLang = getCurrentLang();
         const newLang = toggleLanguage();
         if (oldLang !== newLang) {
-            const newKnobX = newLang === 'en' ? knobOffset : -knobOffset;
+            const newKnobX = newLang === 'en' ? -knobOffset : knobOffset;
             scene.tweens.add({ targets: knob, x: newKnobX, duration: 300, ease: 'Power2' });
             scene.time.delayedCall(350, () => scene.scene.restart());
         }

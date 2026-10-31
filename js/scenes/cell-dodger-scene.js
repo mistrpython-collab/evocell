@@ -1,10 +1,11 @@
 // js/scenes/cell-dodger-scene.js
-import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN 1: Import
+import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
 
 export default class CellDodgerScene extends Phaser.Scene {
     constructor() {
         super("CellDodgerScene");
-        this.fullscreenBtn = null; // ✅ TAMBAHAN 2: Variabel
+        this.fullscreenBtn = null;
     }
 
     create() {
@@ -51,8 +52,8 @@ export default class CellDodgerScene extends Phaser.Scene {
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
 
-        // 7. Instruksi
-        this.add.text(width / 2, height - 40, "Gunakan WASD atau Panah untuk bergerak!", {
+        // 7. ✅ INSTRUKSI - TERJEMAHAN
+        this.add.text(width / 2, height - 40, getLang('dodgerInstruction'), {
             font: "18px Arial",
             fill: "#ffffff",
             stroke: "#000000",
@@ -187,14 +188,16 @@ export default class CellDodgerScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        this.add.text(width / 2, height / 2 - 50, "GAME OVER", {
+        // ✅ GAME OVER - TERJEMAHAN
+        this.add.text(width / 2, height / 2 - 50, getLang('dodgerGameOver'), {
             font: "bold 64px Arial",
             fill: "#ff0000",
             stroke: "#000000",
             strokeThickness: 8
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, height / 2 + 50, "Klik untuk Kembali ke Menu", {
+        // ✅ KLIK UNTUK KEMBALI - TERJEMAHAN
+        this.add.text(width / 2, height / 2 + 50, getLang('clickToMenu'), {
             font: "24px Arial",
             fill: "#00ff00",
             stroke: "#000000",

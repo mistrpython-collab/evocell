@@ -52,7 +52,8 @@ export class OrientationChecker {
 
         // 4. Judul
         const title = document.createElement('h2');
-        title.textContent = 'Putar Perangkat ke Mode Landscape';
+        title.textContent = 'Putar Perangkat ke Mode Landscape\nTurn Device to Landscape Mode';
+        
         title.style.cssText = `
             color: #00ff00;
             font-size: 28px;
@@ -61,11 +62,12 @@ export class OrientationChecker {
             text-shadow: 0 0 10px #00ff00;
             pointer-events: none;
             user-select: none;
+            white-space: pre-line; /* ✅ TAMBAH INI agar \n berfungsi */
         `;
 
         // 5. Subtitle
         const subtitle = document.createElement('p');
-        subtitle.textContent = 'Game ini hanya dapat dimainkan dalam mode landscape';
+        subtitle.textContent = 'Game ini hanya dapat dimainkan dalam mode landscape\nThis game can only be played in landscape mode';
         subtitle.style.cssText = `
             color: #cccccc;
             font-size: 18px;
@@ -73,6 +75,7 @@ export class OrientationChecker {
             font-family: Arial, sans-serif;
             pointer-events: none;
             user-select: none;
+            white-space: pre-line; /* ✅ TAMBAH INI agar \n berfungsi */
         `;
 
         this.overlay.appendChild(icon);

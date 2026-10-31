@@ -1,10 +1,11 @@
 // virus-game.js - Gameplay Virus (Dash Bisa Infect)
-import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN 1: Import fullscreen
+import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
 
 export default class VirusGame extends Phaser.Scene {
     constructor() {
         super('VirusGame');
-        this.fullscreenBtn = null; // ✅ TAMBAHAN 2: Variabel tombol fullscreen
+        this.fullscreenBtn = null;
     }
 
     init(data) {
@@ -38,11 +39,13 @@ export default class VirusGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         
-        this.add.text(30, 30, 'VIRUS', {
+        // ✅ JUDUL - TERJEMAHAN
+        this.add.text(30, 30, getLang('virusTitle'), {
             font: 'bold 28px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        this.scoreText = this.add.text(width - 30, 30, `Skor: 0 / ${this.WIN_SCORE}`, {
+        // ✅ SKOR - TERJEMAHAN
+        this.scoreText = this.add.text(width - 30, 30, `${getLang('score')}: 0 / ${this.WIN_SCORE}`, {
             font: 'bold 28px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
         
@@ -50,7 +53,7 @@ export default class VirusGame extends Phaser.Scene {
             font: 'bold 24px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 3
         }).setDepth(10);
         
-        this.timerText = this.add.text(30, 100, '️ 5s', {
+        this.timerText = this.add.text(30, 100, '⏱️ 5s', {
             font: 'bold 28px Arial', 
             fill: '#00ffff',
             stroke: '#000000', 
@@ -92,21 +95,21 @@ export default class VirusGame extends Phaser.Scene {
         });
         
         const pauseBtnSize = 150;
-const pauseBtnMargin = 50;
-this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
-this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-this.pauseButton.setInteractive({ useHandCursor: true });
-this.pauseButton.setDepth(10);
-this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-this.pauseButton.on('pointerdown', () => this.togglePause());
+        const pauseBtnMargin = 50;
+        this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn');
+        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+        this.pauseButton.setInteractive({ useHandCursor: true });
+        this.pauseButton.setDepth(10);
+        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+        this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        const missionText = this.add.text(width/2, height/2, 'MISI VIRUS\nInfeksi Sel untuk Bertahan!', {
+        // ✅ MISI VIRUS - TERJEMAHAN
+        const missionText = this.add.text(width/2, height/2, getLang('virusMissionText'), {
             font: 'bold 48px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
 
-        // ✅ TAMBAHAN 3: Panggil fungsi buat tombol fullscreen
         this.createFullscreenButton(width, height);
     }
 
@@ -169,24 +172,21 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         return 3;
     }
 
-    // ✅ HANDLE COLLISION - Bisa infect saat dash ATAU gerakan lambat
     handleCollision(virus, wbc) {
         if (this.isGameOver || this.isPaused || !wbc.active) return;
         
         const scoreValue = wbc.scoreValue;
         this.score += scoreValue;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         
         virus.lastInfectionTime = Date.now();
         
         this.createInfectionParticles(wbc.x, wbc.y);
         wbc.destroy();
         
-        // ✅ TELEPORT ke posisi WBC (baik saat dash maupun tidak)
         virus.setPosition(wbc.x, wbc.y);
         virus.lastInfectionTime = Date.now();
         
-        // Reset movement dan dash
         virus.isDashing = false;
         if (virus.blinkTween) {
             virus.blinkTween.stop();
@@ -300,23 +300,24 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
+    // ✅ VICTORY - TERJEMAHAN
     triggerVictory() {
         this.isGameOver = true;
-        this.add.text(640, 300, 'MISI SELESAI!', {
+        this.add.text(640, 300, getLang('virusVictory'), {
             font: 'bold 72px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
+    // ✅ GAME OVER - TERJEMAHAN
     triggerGameOver() {
         this.isGameOver = true;
-        this.add.text(640, 300, 'VIRUS MATI', {
+        this.add.text(640, 300, getLang('virusGameOver'), {
             font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    // ✅ TAMBAHAN 4: Fungsi membuat tombol Fullscreen di tengah atas
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
 
@@ -352,7 +353,6 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
     }
 
-    // ✅ TAMBAHAN 5: Fungsi update icon tombol
     updateFullscreenButtonIcon() {
         if (!this.fullscreenBtn) return;
         const isFullscreen = fullscreenManager.getStatus();
@@ -513,7 +513,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         });
         
         if (!this.dashWarningText) {
-            this.dashWarningText = this.scene.add.text(this.x, this.y - 50, '️ DASH!', {
+            this.dashWarningText = this.scene.add.text(this.x, this.y - 50, '⚠️ DASH!', {
                 font: 'bold 32px Arial',
                 fill: '#ff0000',
                 stroke: '#000000',

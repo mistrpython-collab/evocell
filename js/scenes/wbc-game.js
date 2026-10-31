@@ -1,10 +1,11 @@
 // wbc-game.js - White Blood Cell Game
-import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN 1: Import fullscreen
+import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
         super('WBCGame');
-        this.fullscreenBtn = null; // ✅ TAMBAHAN 2: Variabel tombol fullscreen
+        this.fullscreenBtn = null;
     }
 
     init(data) {
@@ -79,11 +80,13 @@ export default class WBCGame extends Phaser.Scene {
         
         this.laserGraphics = this.add.graphics().setDepth(4);
         
-        this.add.text(30, 30, 'WBC', {
+        // ✅ JUDUL - TERJEMAHAN
+        this.add.text(30, 30, getLang('wbcTitle'), {
             font: 'bold 28px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        this.scoreText = this.add.text(width - 30, 30, `Skor: 0 / ${this.WIN_SCORE}`, {
+        // ✅ SKOR - TERJEMAHAN
+        this.scoreText = this.add.text(width - 30, 30, `${getLang('score')}: 0 / ${this.WIN_SCORE}`, {
             font: 'bold 28px Arial', fill: '#FFFFFF', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
         
@@ -126,22 +129,22 @@ export default class WBCGame extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.enemies, this.handleEat, null, this);
         this.physics.add.overlap(this.bullets, this.enemies, this.handleBulletHit, null, this);
         
-       const pauseBtnSize = 150;
-const pauseBtnMargin = 50;
-this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
-this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-this.pauseButton.setInteractive({ useHandCursor: true });
-this.pauseButton.setDepth(10);
-this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-this.pauseButton.on('pointerdown', () => this.togglePause());
+        const pauseBtnSize = 150;
+        const pauseBtnMargin = 50;
+        this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn');
+        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+        this.pauseButton.setInteractive({ useHandCursor: true });
+        this.pauseButton.setDepth(10);
+        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+        this.pauseButton.on('pointerdown', () => this.togglePause());
         
-        const missionText = this.add.text(width/2, height/2, 'MISI WBC\nWASD Gerak - Mouse Aim - Klik Tembak!', {
+        // ✅ MISI WBC - TERJEMAHAN
+        const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
             font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
 
-        // ✅ TAMBAHAN 3: Panggil fungsi buat tombol fullscreen
         this.createFullscreenButton(width, height);
     }
 
@@ -212,7 +215,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
             
             const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
             this.score += points;
-            this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+            this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
             
             if (this.score >= this.WIN_SCORE) {
                 this.triggerVictory();
@@ -255,7 +258,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         
         const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
         this.score += points;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         
         this.createEatParticles(enemy.x, enemy.y);
         enemy.destroy();
@@ -315,23 +318,24 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
+    // ✅ VICTORY - TERJEMAHAN
     triggerVictory() {
         this.isGameOver = true;
-        this.add.text(640, 300, 'MISI SELESAI!', {
+        this.add.text(640, 300, getLang('wbcVictory'), {
             font: 'bold 72px Arial', fill: '#00FF00', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
+    // ✅ GAME OVER - TERJEMAHAN
     triggerGameOver() {
         this.isGameOver = true;
-        this.add.text(640, 300, 'WBC GAGAL', {
+        this.add.text(640, 300, getLang('wbcGameOver'), {
             font: 'bold 72px Arial', fill: '#FFA500', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    // ✅ TAMBAHAN 4: Fungsi membuat tombol Fullscreen di tengah atas
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
 
@@ -367,7 +371,6 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
     }
 
-    // ✅ TAMBAHAN 5: Fungsi update icon tombol
     updateFullscreenButtonIcon() {
         if (!this.fullscreenBtn) return;
         const isFullscreen = fullscreenManager.getStatus();
@@ -482,14 +485,11 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         
         this.moveSpeed = 600;
-        this.radius = 10; // ✅ Diperkecil dari 15
+        this.radius = 10;
         
         this.body.setCircle(this.radius);
         this.setDepth(6);
         
-        // ✅ DIBALIK: Cabang Y (dengan lingkaran cyan) menghadap ke arah tembak
-        // Y default: batang di bawah, cabang di atas (menghadap ke atas)
-        // angle + Math.PI/2 → cabang Y menghadap ke arah angle (ke musuh)
         this.setRotation(angle + Math.PI / 2);
         
         this.body.setVelocity(

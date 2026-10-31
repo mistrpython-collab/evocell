@@ -1,5 +1,6 @@
 // device-mode-scene.js - Pilih Mode Perangkat
 import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang } from '../utils/translations.js';
 
 export default class DeviceModeScene extends Phaser.Scene {
     constructor() {
@@ -22,7 +23,7 @@ export default class DeviceModeScene extends Phaser.Scene {
         overlay.setDepth(0);
 
         // Judul
-        this.add.text(width / 2, 90, 'PILIH MODE PERANGKAT', {
+        this.add.text(width / 2, 90, getLang('selectDeviceTitle'), {
             font: 'bold 48px Arial',
             fill: '#00ffff',
             stroke: '#000000',
@@ -30,7 +31,7 @@ export default class DeviceModeScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(10);
 
         // Subtitle
-        this.add.text(width / 2, 140, 'Pilih sesuai perangkat yang kamu gunakan', {
+        this.add.text(width / 2, 140, getLang('selectDeviceSubtitle'), {
             font: '20px Arial',
             fill: '#cccccc',
             stroke: '#000000',
