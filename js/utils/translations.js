@@ -34,6 +34,7 @@ export const translations = {
         boss3Phase2Immune: "BOSS 3 FASE 2: KEBAL (Capai Skor 15000)",
         boss3Phase2Vulnerable: "BOSS 3 FASE 2: RENTAN! KEJAR DAN TABRAK!",
         prokaryoticVictory: "MISI BERHASIL!",
+                mission2Complete: "MISI 2 SELESAI!",
         prokaryoticGameOver: "PERMAINAN BERAKHIR",
         virusVictory: "MISI SELESAI!",
         virusGameOver: "VIRUS MATI",
@@ -86,6 +87,7 @@ export const translations = {
         boss3Phase2Immune: "BOSS 3 PHASE 2: IMMUNE (Reach Score 15000)",
         boss3Phase2Vulnerable: "BOSS 3 PHASE 2: VULNERABLE! CHASE AND COLLIDE!",
         prokaryoticVictory: "MISSION ACCOMPLISHED!",
+                mission2Complete: "MISSION 2 COMPLETE!",
         prokaryoticGameOver: "GAME OVER",
         virusVictory: "MISSION COMPLETE!",
         virusGameOver: "VIRUS DESTROYED",
@@ -136,13 +138,13 @@ export function createLanguageSwitch(scene, x, y) {
     track.strokeRoundedRect(-switchWidth/2, -switchHeight/2, switchWidth, switchHeight, 18);
     container.add(track);
     
-    const enLabel = scene.add.text(-switchWidth/2 + 22, 0, 'EN', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
+    const enLabel = scene.add.text(-switchWidth/2 + 22, 0, 'ID', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
     container.add(enLabel);
     
-    const idLabel = scene.add.text(switchWidth/2 - 22, 0, 'ID', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
+    const idLabel = scene.add.text(switchWidth/2 - 22, 0, 'EN', { font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5);
     container.add(idLabel);
     
-    const knobX = currentLang === 'id' ? knobOffset : -knobOffset;
+    const knobX = currentLang === 'en' ? -knobOffset : knobOffset;
     const knob = scene.add.graphics();
     knob.fillStyle(0x00ff00, 1);
     knob.fillCircle(knobX, 0, knobRadius);
@@ -157,7 +159,7 @@ export function createLanguageSwitch(scene, x, y) {
         const oldLang = getCurrentLang();
         const newLang = toggleLanguage();
         if (oldLang !== newLang) {
-            const newKnobX = newLang === 'id' ? knobOffset : -knobOffset;
+            const newKnobX = newLang === 'en' ? knobOffset : -knobOffset;
             scene.tweens.add({ targets: knob, x: newKnobX, duration: 300, ease: 'Power2' });
             scene.time.delayedCall(350, () => scene.scene.restart());
         }

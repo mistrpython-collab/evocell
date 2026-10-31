@@ -53,13 +53,27 @@ export default class ModeSelectScene extends Phaser.Scene {
         playBtn.setScale(0.13).setInteractive({ useHandCursor: true });
         playBtn.on("pointerover", () => playBtn.setScale(0.14));
         playBtn.on("pointerout", () => playBtn.setScale(0.13));
-        playBtn.on("pointerdown", () => {
+               playBtn.on("pointerdown", () => {
             let gameScene = 'ProkaryoticGame';
-            if (modeTitle.includes("3")) gameScene = 'CellDodgerScene';
-            else if (character === 'virus') gameScene = 'VirusGame';
+            
+            // ✅ Tentukan misi internal (selalu pakai "Misi X")
+            let internalMission = "Misi 1";
+            
+            if (modeTitle.includes("3")) {
+                internalMission = "Misi 3";
+                gameScene = 'CellDodgerScene';
+            } else if (modeTitle.includes("2")) {
+                internalMission = "Misi 2";
+            }
+
+            if (character === 'virus') gameScene = 'VirusGame';
             else if (character === 'wbc') gameScene = 'WBCGame';
             
-            this.scene.start(gameScene, { role: character, mode: modeTitle.includes("1") ? "tutorial" : "game", mission: modeTitle });
+            this.scene.start(gameScene, { 
+                role: character, 
+                mode: internalMission === "Misi 1" ? "tutorial" : "game", 
+                mission: internalMission
+            });
         });
         card.add(playBtn);
 

@@ -1,17 +1,18 @@
 // prokaryotic-game.js - LENGKAP: 3 Boss + Cursor Smooth + Dash Jauh + Shooter 4 Bola + Chaser Nembak
-import { fullscreenManager } from '../utils/fullscreen.js'; // ✅ TAMBAHAN: Import fullscreen
+import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang } from '../utils/translations.js';
 
 export default class ProkaryoticGame extends Phaser.Scene {
     constructor() {
         super('ProkaryoticGame');
-        this.fullscreenBtn = null; // ✅ TAMBAHAN: Variabel tombol fullscreen
+        this.fullscreenBtn = null;
     }
 
-    init(data) {
+    init(data){
         this.selectedRole = data.role || 'prokaryotic';
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 1';
-        
+
         if (this.mission === 'Misi 1') {
             this.WIN_SCORE = 500;
             this.SPAWN_DELAY = 400;
@@ -23,7 +24,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
             this.ENEMY_SPEED_MULT = 1.3;
             this.BOSS_MODE = true;
             this.BOSS1_SPAWN_SCORE = 500;
-            this.BOSS1_KILL_SCORE = 1500;
+            this.BOSS1_KILL_SCORE = 1000;
             this.BOSS2_KILL_SCORE = 3000;
             this.BOSS3_KILL_SCORE = 10000;
             this.BOSS3_PHASE2_KILL_SCORE = 15000;
@@ -35,7 +36,7 @@ export default class ProkaryoticGame extends Phaser.Scene {
         }
     }
 
-    create() {
+    create(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
@@ -67,21 +68,21 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         
-        this.add.text(30, 30, 'PROKARYOTIC', {
+        this.add.text(30, 30, getLang('prokaryoticTitle'), {
             font: 'bold 28px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        this.scoreText = this.add.text(width - 30, 30, `Skor: 0 / ${this.WIN_SCORE}`, {
+        this.scoreText = this.add.text(width - 30, 30, `${getLang('score')}: 0 / ${this.WIN_SCORE}`, {
             font: 'bold 28px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
         
-        this.livesText = this.add.text(30, 70, `Nyawa: ❤️❤️❤️`, {
+        this.livesText = this.add.text(30, 70, `${getLang('lives')}: ❤️❤️❤️`, {
             font: 'bold 28px Arial', fill: '#ff4444', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
         this.bossStatusText = this.add.text(width/2, 140, '', {
-    font: 'bold 24px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 3, align: 'center'
-}).setOrigin(0.5).setDepth(15);
+            font: 'bold 24px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 3, align: 'center'
+        }).setOrigin(0.5).setDepth(15);
         this.bossStatusText.visible = false;
         
         this.player = new ProkaryoticCell(this, width/2, height/2);
@@ -111,28 +112,27 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.enemies, this.handleCollision, null, this);
         this.physics.add.overlap(this.player, this.projectiles, this.handleProjectileCollision, null, this);
         
-       const pauseBtnSize = 150;
-const pauseBtnMargin = 50;
-this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
-this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-this.pauseButton.setInteractive({ useHandCursor: true });
-this.pauseButton.setDepth(10);
-this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-this.pauseButton.on('pointerdown', () => this.togglePause());
+        const pauseBtnSize = 150;
+        const pauseBtnMargin = 50;
+        this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn');
+        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+        this.pauseButton.setInteractive({ useHandCursor: true });
+        this.pauseButton.setDepth(10);
+        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+        this.pauseButton.on('pointerdown', () => this.togglePause());
         
         if (this.mission === 'Misi 2') {
-            const missionText = this.add.text(width/2, height/2, 'MISSION 2\nHARD MODE + 3 BOSS BATTLES', {
+            const missionText = this.add.text(width/2, height/2, getLang('mission2Warning'), {
                 font: 'bold 48px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 6, align: 'center'
             }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(3000, () => missionText.destroy());
         }
 
-        // ✅ TAMBAHAN: Buat tombol fullscreen di tengah atas
         this.createFullscreenButton(width, height);
     }
 
-    update() {
+    update(){
         if (this.isPaused || this.isGameOver) return;
         
         this.enemies.children.iterate((bacteria) => {
@@ -153,37 +153,37 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         
         if (this.boss1 && this.boss1.active) {
             if (this.score >= this.BOSS1_KILL_SCORE) {
-                this.bossStatusText.setText('BOSS 1: VULNERABLE! - KEJAR & TABRAK!');
+                this.bossStatusText.setText(getLang('boss1Vulnerable'));
                 this.bossStatusText.setStyle({ fill: '#00ff00' });
             } else {
-                this.bossStatusText.setText(`BOSS 1: IMMUNE (Reach ${this.BOSS1_KILL_SCORE})`);
+                this.bossStatusText.setText(getLang('boss1Immune'));
                 this.bossStatusText.setStyle({ fill: '#ff0000' });
             }
             this.bossStatusText.visible = true;
         } else if (this.boss2 && this.boss2.active) {
             if (this.score >= this.BOSS2_KILL_SCORE) {
-                this.bossStatusText.setText('BOSS 2: VULNERABLE! - KEJAR & TABRAK!');
+                this.bossStatusText.setText(getLang('boss2Vulnerable'));
                 this.bossStatusText.setStyle({ fill: '#00ff00' });
             } else {
-                this.bossStatusText.setText(`BOSS 2: IMMUNE (Reach ${this.BOSS2_KILL_SCORE})`);
+                this.bossStatusText.setText(getLang('boss2Immune'));
                 this.bossStatusText.setStyle({ fill: '#9900ff' });
             }
             this.bossStatusText.visible = true;
         } else if (this.boss3 && this.boss3.active) {
             if (this.score >= this.BOSS3_KILL_SCORE) {
-                this.bossStatusText.setText('BOSS 3: VULNERABLE! - KEJAR & TABRAK!');
+                this.bossStatusText.setText(getLang('boss3Vulnerable'));
                 this.bossStatusText.setStyle({ fill: '#00ff00' });
             } else {
-                this.bossStatusText.setText(`BOSS 3: IMMUNE (Reach ${this.BOSS3_KILL_SCORE})`);
+                this.bossStatusText.setText(getLang('boss3Immune'));
                 this.bossStatusText.setStyle({ fill: '#ffff00' });
             }
             this.bossStatusText.visible = true;
         } else if (this.boss3Phase2) {
             if (this.score >= this.BOSS3_PHASE2_KILL_SCORE) {
-                this.bossStatusText.setText('BOSS 3 PHASE 2: VULNERABLE! - KEJAR & TABRAK!');
+                this.bossStatusText.setText(getLang('boss3Phase2Vulnerable'));
                 this.bossStatusText.setStyle({ fill: '#00ff00' });
             } else {
-                this.bossStatusText.setText(`BOSS 3 PHASE 2: IMMUNE (Reach ${this.BOSS3_PHASE2_KILL_SCORE})`);
+                this.bossStatusText.setText(getLang('boss3Phase2Immune'));
                 this.bossStatusText.setStyle({ fill: '#ffaa00' });
             }
             this.bossStatusText.visible = true;
@@ -192,7 +192,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
-    spawnBacteria() {
+    spawnBacteria(){
         if (this.isPaused || this.isGameOver) return;
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -212,34 +212,34 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         this.enemies.add(new Bacteria(this, x, y, sizeLevel, this.ENEMY_SPEED_MULT));
     }
 
-    spawnBoss1() {
+    spawnBoss1(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         this.boss1 = new BossBacteriaRed(this, width/2, -150);
         this.enemies.add(this.boss1);
-        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 1 APPEARS! ⚠️\nRed Bacteria - Reach 1500 to Kill!', {
+        const bossAlert = this.add.text(width/2, height/2, getLang('boss1Appears'), {
             font: 'bold 48px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
         this.cameras.main.shake(500, 0.02);
     }
 
-    spawnBoss2() {
+    spawnBoss2(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         this.boss2 = new BossBacteriaPurple(this, width/2, -150, this);
         this.enemies.add(this.boss2);
-        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 2 APPEARS! ⚠️\nPurple Shooter - Reach 3000 to Kill!', {
+        const bossAlert = this.add.text(width/2, height/2, getLang('boss2Appears'), {
             font: 'bold 48px Arial', fill: '#9900ff', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
         this.cameras.main.shake(500, 0.02);
     }
 
-    spawnBoss3() {
+    spawnBoss3(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        const warningText = this.add.text(width/2, height/2, '⚠️ WARNING! ⚠️\nBOSS 3 INCOMING!', {
+        const warningText = this.add.text(width/2, height/2, '️ WARNING! ⚠️\nBOSS 3 INCOMING!', {
             font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(30);
         this.tweens.add({ targets: warningText, alpha: 0.3, duration: 300, yoyo: true, repeat: 5 });
@@ -256,7 +256,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         });
     }
 
-    spawnBoss3Phase2() {
+    spawnBoss3Phase2(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         this.boss3Shooter = new BossBacteriaYellowShooter(this, width/3, height/2, this);
@@ -264,14 +264,14 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         this.boss3Chaser = new BossBacteriaYellowChaser(this, width * 2/3, height/2, this);
         this.enemies.add(this.boss3Chaser);
         this.boss3Phase2 = true;
-        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 15000 to Kill Both!', {
+        const bossAlert = this.add.text(width/2, height/2, '️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 15000 to Kill Both!', {
             font: 'bold 48px Arial', fill: '#ffaa00', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
         this.cameras.main.shake(500, 0.02);
     }
 
-    getBacteriaSizeLevel() {
+    getBacteriaSizeLevel(){
         const playerSize = this.player.cellSize;
         const roll = Math.random();
         if (this.mission === 'Misi 2') {
@@ -285,7 +285,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
-    handleCollision(player, bacteria) {
+    handleCollision(player, bacteria){
         if (this.isGameOver || this.isPaused || !bacteria.active) return;
         const currentTime = Date.now();
         if (currentTime - this.lastDamageTime < 500) return;
@@ -297,7 +297,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         if (bacteria instanceof BossBacteriaYellowShooter || bacteria instanceof BossBacteriaYellowChaser) { this.handleBoss3Phase2Collision(player, bacteria); return; }
         if (playerRadius > bacteriaRadius * 1.1) {
             this.score += bacteria.scoreValue;
-            this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+            this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
             player.grow();
             bacteria.destroy();
             if (this.score >= this.WIN_SCORE && !this.BOSS_MODE) this.triggerVictory();
@@ -307,60 +307,60 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
-    handleBoss1Collision(player, boss) {
+    handleBoss1Collision(player, boss){
         if (this.score < this.BOSS1_KILL_SCORE) {
             this.loseLife(); this.lastDamageTime = Date.now();
-            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `BOSS 1 IMMUNE!\nReach ${this.BOSS1_KILL_SCORE} Score!`, { font: 'bold 32px Arial', fill: '#ff6600', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
+            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `${getLang('boss1Immune')}!`, { font: 'bold 32px Arial', fill: '#ff6600', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(1500, () => immuneText.destroy());
             return;
         }
         boss.destroy(); this.boss1Defeated = true; this.score += 500;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         this.cameras.main.shake(500, 0.03);
         const killText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2, 'BOSS 1 DEFEATED!', { font: 'bold 64px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 6 }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(1500, () => killText.destroy());
         this.time.delayedCall(2000, () => { if (!this.isGameOver) this.spawnBoss2(); });
     }
 
-    handleBoss2Collision(player, boss) {
+    handleBoss2Collision(player, boss){
         if (this.score < this.BOSS2_KILL_SCORE) {
             this.loseLife(); this.lastDamageTime = Date.now();
-            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `BOSS 2 IMMUNE!\nReach ${this.BOSS2_KILL_SCORE} Score!`, { font: 'bold 32px Arial', fill: '#9900ff', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
+            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `${getLang('boss2Immune')}!`, { font: 'bold 32px Arial', fill: '#9900ff', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(1500, () => immuneText.destroy());
             return;
         }
         boss.destroy(); this.boss2Defeated = true; this.score += 1000;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         this.cameras.main.shake(500, 0.03);
         const killText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2, 'BOSS 2 DEFEATED!', { font: 'bold 64px Arial', fill: '#9900ff', stroke: '#000000', strokeThickness: 6 }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(1500, () => killText.destroy());
         this.time.delayedCall(2000, () => { if (!this.isGameOver) this.spawnBoss3(); });
     }
 
-    handleBoss3Collision(player, boss) {
+    handleBoss3Collision(player, boss){
         if (this.score < this.BOSS3_KILL_SCORE) {
             this.loseLife(); this.lastDamageTime = Date.now();
-            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `BOSS 3 IMMUNE!\nReach ${this.BOSS3_KILL_SCORE} Score!`, { font: 'bold 32px Arial', fill: '#ffff00', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
+            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `${getLang('boss3Immune')}!`, { font: 'bold 32px Arial', fill: '#ffff00', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(1500, () => immuneText.destroy());
             return;
         }
         boss.destroy(); this.score += 1500;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         this.cameras.main.shake(500, 0.03);
         const killText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2, 'BOSS 3 DEFEATED!\nPHASE 2 INCOMING...', { font: 'bold 64px Arial', fill: '#ffff00', stroke: '#000000', strokeThickness: 6, align: 'center' }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(2000, () => killText.destroy());
         this.time.delayedCall(3000, () => { if (!this.isGameOver) this.spawnBoss3Phase2(); });
     }
 
-    handleBoss3Phase2Collision(player, bacteria) {
+    handleBoss3Phase2Collision(player, bacteria){
         if (this.score < this.BOSS3_PHASE2_KILL_SCORE) {
             this.loseLife(); this.lastDamageTime = Date.now();
-            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `PHASE 2 IMMUNE!\nReach ${this.BOSS3_PHASE2_KILL_SCORE} Score!`, { font: 'bold 32px Arial', fill: '#ffaa00', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
+            const immuneText = this.add.text(this.cameras.main.width/2, this.cameras.main.height/2 + 150, `${getLang('boss3Phase2Immune')}!`, { font: 'bold 32px Arial', fill: '#ffaa00', stroke: '#000000', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setDepth(20);
             this.time.delayedCall(1500, () => immuneText.destroy());
             return;
         }
         bacteria.destroy(); this.score += 500;
-        this.scoreText.setText(`Skor: ${this.score} / ${this.WIN_SCORE}`);
+        this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
         this.cameras.main.shake(300, 0.02);
         const shooterAlive = this.boss3Shooter && this.boss3Shooter.active;
         const chaserAlive = this.boss3Chaser && this.boss3Chaser.active;
@@ -371,7 +371,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         }
     }
 
-    handleProjectileCollision(player, projectile) {
+    handleProjectileCollision(player, projectile){
         if (this.isGameOver || this.isPaused || !projectile.active) return;
         const currentTime = Date.now();
         if (currentTime - this.lastDamageTime < 500) return;
@@ -380,15 +380,15 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         this.cameras.main.flash(200, 255, 255, 0);
     }
 
-    loseLife() {
+    loseLife(){
         this.lives--;
         let hearts = '❤️'.repeat(this.lives);
-        this.livesText.setText(`Nyawa: ${hearts}`);
+        this.livesText.setText(`${getLang('lives')}: ${hearts}`);
         if (this.lives <= 0) { this.triggerGameOver(); }
         else { this.player.setPosition(640, 360); this.player.body.setVelocity(0, 0); }
     }
 
-    togglePause() {
+    togglePause(){
         if (this.isGameOver) return;
         this.isPaused = !this.isPaused;
         if (this.isPaused) {
@@ -399,7 +399,7 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         } else { this.hidePauseMenu(); }
     }
 
-    showPauseMenu() {
+    showPauseMenu(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         this.pauseMenuContainer = this.add.container(0, 0).setDepth(20);
@@ -425,30 +425,27 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
         this.pauseMenuContainer.add(exitBtn);
     }
 
-    hidePauseMenu() {
+    hidePauseMenu(){
         if (this.pauseMenuContainer) { this.pauseMenuContainer.destroy(); this.pauseMenuContainer = null; }
     }
 
-    triggerVictory() {
+    triggerVictory(){
         this.isGameOver = true;
-        const victoryText = this.mission === 'Misi 2' ? 'MISSION 2 COMPLETE!' : 'VICTORY!';
+        const victoryText = this.mission === 'Misi 2' ? getLang('mission2Complete') : getLang('prokaryoticVictory');
         this.add.text(640, 300, victoryText, { font: 'bold 72px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 8 }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    triggerGameOver() {
+    triggerGameOver(){
         this.isGameOver = true;
-        this.add.text(640, 300, 'GAME OVER', { font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8 }).setOrigin(0.5).setDepth(20);
+        this.add.text(640, 300, getLang('prokaryoticGameOver'), { font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8 }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    // ✅ TAMBAHAN: Fungsi membuat tombol Fullscreen di tengah atas
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
-
-        const btnX = width / 2; // Posisi TENGAH
-        const btnY = 60;        // Posisi ATAS (aman, tidak menutupi gameplay)
-
+        const btnX = width / 2;
+        const btnY = 60;
         this.fullscreenBtn = this.add.text(btnX, btnY, '⛶', {
             font: 'bold 28px Arial',
             fill: '#00ff00',
@@ -458,31 +455,25 @@ this.pauseButton.on('pointerdown', () => this.togglePause());
             padding: { x: 12, y: 8 }
         });
         this.fullscreenBtn.setOrigin(0.5);
-        this.fullscreenBtn.setDepth(1000); // Pastikan di atas segalanya
+        this.fullscreenBtn.setDepth(1000);
         this.fullscreenBtn.setInteractive({ useHandCursor: true });
-
         this.fullscreenBtn.on('pointerover', () => {
             this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' });
         });
         this.fullscreenBtn.on('pointerout', () => {
             this.fullscreenBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' });
         });
-
         this.fullscreenBtn.on('pointerdown', () => {
             fullscreenManager.toggleFullscreen();
         });
-
         this.updateFullscreenButtonIcon();
-        
         window.addEventListener('fullscreenchange', () => this.updateFullscreenButtonIcon());
         window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
     }
 
-    // ✅ TAMBAHAN: Fungsi update icon tombol
     updateFullscreenButtonIcon() {
         if (!this.fullscreenBtn) return;
         const isFullscreen = fullscreenManager.getStatus();
-
         if (isFullscreen) {
             this.fullscreenBtn.setText('✕');
             this.fullscreenBtn.setStyle({
@@ -972,33 +963,26 @@ class BossBacteriaYellowShooter extends Phaser.Physics.Arcade.Sprite {
             onComplete: () => { if (this.active) this.setTint(0xFF0000); }
         });
     }
-    
     shoot() {
         this.isCharging = false;
         this.lastShootTime = Date.now();
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         this.setTint(0xFFDD00);
-        
         const player = this.gameScene.player;
         if (player && player.active) {
             const baseAngle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
             const spread = 0.25;
-            
             const proj1 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 1.5);
             this.gameScene.projectiles.add(proj1);
-            
             const proj2 = new YellowBall(this.scene, this.x, this.y, baseAngle - spread * 0.5);
             this.gameScene.projectiles.add(proj2);
-            
             const proj3 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 0.5);
             this.gameScene.projectiles.add(proj3);
-            
             const proj4 = new YellowBall(this.scene, this.x, this.y, baseAngle + spread * 1.5);
             this.gameScene.projectiles.add(proj4);
         }
         this.scene.cameras.main.shake(100, 0.01);
     }
-
     destroy() {
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         super.destroy();
@@ -1014,34 +998,25 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         this.gameScene = gameScene;
         this.sizeLevel = 5;
         this.scoreValue = 2000;
-        this.moveSpeed = 140; 
+        this.moveSpeed = 140;
         this.setScale(1.5);
         this.setTint(0xFFAA00);
         this.setDepth(4);
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360);
         this.radius = 15;
         this.body.setCircle(this.radius, this.width/2 - this.radius, this.height/2 - this.radius);
-        
         this.shootCooldown = 8000;
         this.lastShootTime = Date.now();
         this.isCharging = false;
         this.blinkTween = null;
-        
         scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.3, scaleY: this.scaleY * 1.3, duration: 600, yoyo: true, ease: 'Back.easeOut' });
     }
     updateAI() {
         if (!this.body || !this.active) return;
-        
         const currentTime = Date.now();
         const timeSinceLastShoot = currentTime - this.lastShootTime;
-        
-        if (timeSinceLastShoot >= 6000 && !this.isCharging) { 
-            this.startCharging(); 
-        }
-        if (timeSinceLastShoot >= this.shootCooldown && this.isCharging) { 
-            this.shoot(); 
-        }
-        
+        if (timeSinceLastShoot >= 6000 && !this.isCharging) { this.startCharging(); }
+        if (timeSinceLastShoot >= this.shootCooldown && this.isCharging) { this.shoot(); }
         const player = this.gameScene.player;
         if (player && player.active) {
             const angleToPlayer = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
@@ -1057,7 +1032,6 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         const height = this.scene.cameras.main.height;
         if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) { this.direction += Math.PI; }
     }
-    
     startCharging() {
         this.isCharging = true;
         if (this.blinkTween) { this.blinkTween.stop(); }
@@ -1071,13 +1045,11 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
             onComplete: () => { if (this.active) this.setTint(0xFF0000); }
         });
     }
-    
     shoot() {
         this.isCharging = false;
         this.lastShootTime = Date.now();
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         this.setTint(0xFFAA00);
-        
         const player = this.gameScene.player;
         if (player && player.active) {
             const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
@@ -1086,7 +1058,6 @@ class BossBacteriaYellowChaser extends Phaser.Physics.Arcade.Sprite {
         }
         this.scene.cameras.main.shake(100, 0.01);
     }
-
     destroy() {
         if (this.blinkTween) { this.blinkTween.stop(); this.blinkTween = null; }
         super.destroy();
