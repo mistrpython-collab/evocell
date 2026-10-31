@@ -92,14 +92,14 @@ export default class VirusGame extends Phaser.Scene {
         });
         
         const pauseBtnSize = 150;
-        const pauseBtnMargin = 50;
-        this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
-        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-        this.pauseButton.setInteractive({ useHandCursor: true });
-        this.pauseButton.setDepth(10);
-        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-        this.pauseButton.on('pointerdown', () => this.togglePause());
+const pauseBtnMargin = 50;
+this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
+this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+this.pauseButton.setInteractive({ useHandCursor: true });
+this.pauseButton.setDepth(10);
+this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+this.pauseButton.on('pointerdown', () => this.togglePause());
         
         const missionText = this.add.text(width/2, height/2, 'MISI VIRUS\nInfeksi Sel untuk Bertahan!', {
             font: 'bold 48px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 6, align: 'center'

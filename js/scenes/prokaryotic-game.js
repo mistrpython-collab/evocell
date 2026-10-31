@@ -79,9 +79,9 @@ export default class ProkaryoticGame extends Phaser.Scene {
             font: 'bold 28px Arial', fill: '#ff4444', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        this.bossStatusText = this.add.text(width/2, 80, '', {
-            font: 'bold 24px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 3, align: 'center'
-        }).setOrigin(0.5).setDepth(15);
+        this.bossStatusText = this.add.text(width/2, 140, '', {
+    font: 'bold 24px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 3, align: 'center'
+}).setOrigin(0.5).setDepth(15);
         this.bossStatusText.visible = false;
         
         this.player = new ProkaryoticCell(this, width/2, height/2);
@@ -111,15 +111,15 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.enemies, this.handleCollision, null, this);
         this.physics.add.overlap(this.player, this.projectiles, this.handleProjectileCollision, null, this);
         
-        const pauseBtnSize = 150;
-        const pauseBtnMargin = 50;
-        this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
-        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-        this.pauseButton.setInteractive({ useHandCursor: true });
-        this.pauseButton.setDepth(10);
-        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-        this.pauseButton.on('pointerdown', () => this.togglePause());
+       const pauseBtnSize = 150;
+const pauseBtnMargin = 50;
+this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
+this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+this.pauseButton.setInteractive({ useHandCursor: true });
+this.pauseButton.setDepth(10);
+this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+this.pauseButton.on('pointerdown', () => this.togglePause());
         
         if (this.mission === 'Misi 2') {
             const missionText = this.add.text(width/2, height/2, 'MISSION 2\nHARD MODE + 3 BOSS BATTLES', {

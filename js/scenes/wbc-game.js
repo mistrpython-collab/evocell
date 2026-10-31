@@ -126,15 +126,15 @@ export default class WBCGame extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.enemies, this.handleEat, null, this);
         this.physics.add.overlap(this.bullets, this.enemies, this.handleBulletHit, null, this);
         
-        const pauseBtnSize = 150;
-        const pauseBtnMargin = 50;
-        this.pauseButton = this.add.image(pauseBtnMargin, height - pauseBtnMargin, 'pause-btn');
-        this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
-        this.pauseButton.setInteractive({ useHandCursor: true });
-        this.pauseButton.setDepth(10);
-        this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
-        this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
-        this.pauseButton.on('pointerdown', () => this.togglePause());
+       const pauseBtnSize = 150;
+const pauseBtnMargin = 50;
+this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn'); // ✅ Pindah ke kanan atas
+this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize);
+this.pauseButton.setInteractive({ useHandCursor: true });
+this.pauseButton.setDepth(10);
+this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
+this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
+this.pauseButton.on('pointerdown', () => this.togglePause());
         
         const missionText = this.add.text(width/2, height/2, 'MISI WBC\nWASD Gerak - Mouse Aim - Klik Tembak!', {
             font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
