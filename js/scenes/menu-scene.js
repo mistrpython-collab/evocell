@@ -1,5 +1,6 @@
 // menu-scene.js - Main menu dengan LOGO GAMBAR EvoCell
-import { fullscreenManager } from '../utils/fullscreen.js'; // Import fullscreen
+import { fullscreenManager } from '../utils/fullscreen.js';
+import { getLang, createLanguageSwitch } from '../utils/translations.js'; // ✅ GANTI createLanguageToggle jadi createLanguageSwitch
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -87,6 +88,9 @@ export default class MenuScene extends Phaser.Scene {
         deviceModeBtn.on('pointerover', () => deviceModeBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' }));
         deviceModeBtn.on('pointerout', () => deviceModeBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' }));
         deviceModeBtn.on('pointerdown', () => this.scene.start('DeviceModeScene'));
+
+        
+       createLanguageSwitch(this, 120, 140);
 
         // 9. Tombol Fullscreen (Kanan Atas - Hijau)
         this.createFullscreenButton(width, height);

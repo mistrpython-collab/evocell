@@ -2,9 +2,13 @@
 import config from './config.js';
 import { fullscreenManager } from './utils/fullscreen.js';
 import { orientationChecker } from './utils/orientation.js';
+import { getCurrentLang } from './utils/translations.js'; // ✅ TAMBAH INI
 
 console.log('Starting EvoCell game...');
+console.log('Language:', getCurrentLang() === 'id' ? 'Indonesia' : 'English');
 console.log('Fullscreen supported:', fullscreenManager.supportsFullscreen);
+
+// ... (kode selanjutnya tetap sama)
 
 // Error handling untuk game
 window.addEventListener('error', (e) => {
