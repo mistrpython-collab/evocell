@@ -778,6 +778,7 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
             this.shieldGraphics.strokeCircle(0, 0, this.radius + 8);
         }
     }
+    
 
     removeShield() {
         if (this.shieldGraphics) {
