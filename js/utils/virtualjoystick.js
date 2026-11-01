@@ -23,13 +23,15 @@ export default class VirtualJoystick {
         this.graphics = scene.add.graphics().setDepth(1000);
         this.lastFireTime = 0;
         
-        // ✅ LANGSUNG GAMBAR JOYSTICK (FIXED - SELALU TERLIHAT)
-        this.drawFixed();
+        // ✅ LANGSUNG GAMBAR JOYSTICK SAAT CONSTRUCTOR
+        this.draw();
         
+        // ✅ SETUP INPUT DENGAN ZONE LEBIH BESAR
         this.setupInput();
     }
     
     setupInput() {
+        // Zone deteksi lebih besar (3x radius base)
         const zoneSize = this.baseRadius * 3;
         
         this.zone = this.scene.add.zone(
@@ -41,17 +43,22 @@ export default class VirtualJoystick {
         
         this.zone.setInteractive({ useHandCursor: false });
         
+        // ✅ POINTER DOWN - LANGSUNG AKTIF
         this.zone.on('pointerdown', (pointer) => {
             this.isActive = true;
             this.pointerId = pointer.id;
+            // Update posisi knob langsung ke posisi jari
+            this.updateKnob(pointer.x, pointer.y);
         });
         
+        // ✅ POINTER MOVE - UPDATE POSISI KNOB
         this.scene.input.on('pointermove', (pointer) => {
             if (this.isActive && pointer.id === this.pointerId) {
                 this.updateKnob(pointer.x, pointer.y);
             }
         });
         
+        // ✅ POINTER UP - RESET KNOB KE TENGAH
         this.scene.input.on('pointerup', (pointer) => {
             if (this.isActive && pointer.id === this.pointerId) {
                 this.resetKnob();
@@ -59,8 +66,67 @@ export default class VirtualJoystick {
         });
     }
     
-    drawFixed() {
-        // Gambar base dan knob di posisi FIXED (tidak bergerak)
+    updateKnob(pointerX, pointerY) {
+        const dx = pointerX - this.baseX;
+        const dy = pointerY - this.baseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Clamp jarak agar knob tidak keluar dari base
+        const clampedDistance = Math.min(distance, this.baseRadius);
+        const angle = Math.atan2(dy, dx);
+        
+        const knobX = this.baseX + Math.cos(angle) * clampedDistance;
+        const knobY = this.baseY + Math.sin(angle) * clampedDistance;
+        
+        // Update output values
+        this.outputX = (knobX - this.baseX) / this.baseRadius;
+        this.outputY = (knobY - this.baseY) / this.baseRadius;
+        this.outputAngle = angle;
+        
+        // Auto-fire untuk aim joystick
+        if (this.isAimJoystick && this.autoFire) {
+            this.isFiring = true;
+        }
+        
+        // Redraw joystick dengan knob di posisi baru
+        this.drawWithKnob(knobX, knobY);
+    }
+    
+    resetKnob() {
+        this.isActive = false;
+        this.isFiring = false;
+        this.pointerId = null;
+        this.outputX = 0;
+        this.outputY = 0;
+        this.outputAngle = 0;
+        
+        // Kembalikan knob ke tengah
+        this.draw();
+    }
+    
+    draw() {
+        // Gambar joystick dengan knob di TENGAH (posisi default)
+        this.graphics.clear();
+        
+        // Base circle (outline)
+        this.graphics.lineStyle(3, this.color, 0.6);
+        this.graphics.strokeCircle(this.baseX, this.baseY, this.baseRadius);
+        
+        // Base fill (sangat transparan)
+        this.graphics.fillStyle(this.color, 0.1);
+        this.graphics.fillCircle(this.baseX, this.baseY, this.baseRadius);
+        
+        // Knob circle (di tengah)
+        this.graphics.fillStyle(this.color, 0.5);
+        this.graphics.fillCircle(this.baseX, this.baseY, this.knobRadius);
+        
+        // Knob stroke
+        this.graphics.lineStyle(2, 0xffffff, 0.9);
+        this.graphics.strokeCircle(this.baseX, this.baseY, this.knobRadius);
+    }
+    
+    drawWithKnob(knobX, knobY) {
+        // Gambar joystick dengan knob di POSISI JARI
         this.graphics.clear();
         
         // Base circle (outline)
@@ -71,49 +137,15 @@ export default class VirtualJoystick {
         this.graphics.fillStyle(this.color, 0.1);
         this.graphics.fillCircle(this.baseX, this.baseY, this.baseRadius);
         
-        // Knob circle (di tengah saat tidak aktif)
-        this.graphics.fillStyle(this.color, 0.5);
-        this.graphics.fillCircle(this.baseX, this.baseY, this.knobRadius);
-        
-        this.graphics.lineStyle(2, 0xffffff, 0.9);
-        this.graphics.strokeCircle(this.baseX, this.baseY, this.knobRadius);
-    }
-    
-    updateKnob(pointerX, pointerY) {
-        const dx = pointerX - this.baseX;
-        const dy = pointerY - this.baseY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        const clampedDistance = Math.min(distance, this.baseRadius);
-        const angle = Math.atan2(dy, dx);
-        
-        const knobX = this.baseX + Math.cos(angle) * clampedDistance;
-        const knobY = this.baseY + Math.sin(angle) * clampedDistance;
-        
-        this.outputX = (knobX - this.baseX) / this.baseRadius;
-        this.outputY = (knobY - this.baseY) / this.baseRadius;
-        this.outputAngle = angle;
-        
-        if (this.isAimJoystick && this.autoFire) {
-            this.isFiring = true;
-        }
-        
-        // Redraw dengan knob yang bergerak
-        this.graphics.clear();
-        
-        this.graphics.lineStyle(3, this.color, 0.6);
-        this.graphics.strokeCircle(this.baseX, this.baseY, this.baseRadius);
-        
-        this.graphics.fillStyle(this.color, 0.1);
-        this.graphics.fillCircle(this.baseX, this.baseY, this.baseRadius);
-        
+        // Knob circle (mengikuti jari)
         this.graphics.fillStyle(this.color, 0.8);
         this.graphics.fillCircle(knobX, knobY, this.knobRadius);
         
+        // Knob stroke
         this.graphics.lineStyle(2, 0xffffff, 0.9);
         this.graphics.strokeCircle(knobX, knobY, this.knobRadius);
         
-        // Garis arah untuk aim joystick
+        // Garis arah untuk aim joystick (saat firing)
         if (this.isAimJoystick && this.isFiring) {
             const endX = this.baseX + Math.cos(this.outputAngle) * (this.baseRadius + 20);
             const endY = this.baseY + Math.sin(this.outputAngle) * (this.baseRadius + 20);
@@ -126,19 +158,8 @@ export default class VirtualJoystick {
         }
     }
     
-    resetKnob() {
-        this.isActive = false;
-        this.isFiring = false;
-        this.pointerId = null;
-        this.outputX = 0;
-        this.outputY = 0;
-        this.outputAngle = 0;
-        
-        // Kembalikan ke gambar fixed
-        this.drawFixed();
-    }
-    
     update(time) {
+        // Auto-fire logic untuk aim joystick
         if (this.isAimJoystick && this.isFiring && this.autoFire) {
             if (time - this.lastFireTime > this.fireInterval) {
                 this.lastFireTime = time;
