@@ -97,6 +97,9 @@ export default class WBCGame extends Phaser.Scene {
         
         this.player = new WBCPlayer(this, width/2, height/2);
         
+        // ✅ WAJIB: Aktifkan multi-touch (maksimal 10 jari bersamaan)
+        this.input.maxPointers = 10;
+
         this.input.on('pointermove', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
                 this.mouseX = pointer.x;
