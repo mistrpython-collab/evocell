@@ -22,7 +22,7 @@ export default class DualJoystickManager {
         this.leftZoneY = height * 0.80;
         
         // Joystick Kanan (Tembak) - Kanan Bawah
-        this.rightZoneX = width * 0.75;
+        this.rightZoneX = width * 0.65;
         this.rightZoneY = height * 0.80;
     }
     
