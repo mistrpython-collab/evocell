@@ -29,8 +29,7 @@ export default class VirtualJoystick {
     }
     
     setupInput() {
-        // Zone deteksi lebih besar
-        const zoneSize = this.baseRadius * 2.5;
+      const zoneSize = this.baseRadius * 2;  // Lebih kecil lagi
         
         this.zone = this.scene.add.zone(
             this.baseX, 
@@ -41,15 +40,23 @@ export default class VirtualJoystick {
         
         this.zone.setInteractive({ useHandCursor: false });
         
-        // ✅ POINTER DOWN - Aktifkan joystick ini dengan pointer ID unik
+        // ✅ Hanya terima pointer di dalam zone ini
         this.zone.on('pointerdown', (pointer) => {
-            // Hanya aktif jika belum ada yang pakai
-            if (!this.isActive) {
-                this.isActive = true;
-                this.pointerId = pointer.id;
-                this.updateKnob(pointer.x, pointer.y);
+            // Cek apakah pointer benar-benar di dalam zone
+            const distance = Math.sqrt(
+                Math.pow(pointer.x - this.baseX, 2) + 
+                Math.pow(pointer.y - this.baseY, 2)
+            );
+            
+            if (distance <= this.baseRadius * 1.5) {
+                if (!this.isActive) {
+                    this.isActive = true;
+                    this.pointerId = pointer.id;
+                    this.updateKnob(pointer.x, pointer.y);
+                }
             }
         });
+        
         
         // ✅ POINTER MOVE - Update hanya jika pointer ID cocok
         this.scene.input.on('pointermove', (pointer) => {
