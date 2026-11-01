@@ -9,9 +9,10 @@ export default class VirtualJoystick {
         this.color = options.color || 0x00ffff;
         this.isAimJoystick = options.isAimJoystick || false;
         this.autoFire = options.autoFire || false;
-        this.fireInterval = options.fireInterval || 150; // Dipercepat
+        this.fireInterval = options.fireInterval || 150;
         
         this.isActive = false;
+        this.pointerId = null;
         this.outputX = 0;
         this.outputY = 0;
         this.outputAngle = 0;
@@ -25,8 +26,7 @@ export default class VirtualJoystick {
     }
     
     setupInput() {
-        // Zone deteksi (2.5x radius)
-        const zoneSize = this.baseRadius * 2.5;
+        const zoneSize = this.baseRadius * 3;
         
         this.zone = this.scene.add.zone(
             this.baseX, 
@@ -35,26 +35,27 @@ export default class VirtualJoystick {
             zoneSize
         ).setOrigin(0.5).setDepth(1001).setInteractive();
         
-        // ✅ INI KUNCINYA: Gunakan sistem DRAG bawaan Phaser
-        // Sistem ini secara otomatis menangani multi-touch dengan sempurna
-        this.scene.input.setDraggable(this.zone);
-        
-        // Saat jari mulai menyentuh zone ini
-        this.zone.on('dragstart', (pointer, x, y) => {
-            this.isActive = true;
-            this.updateKnob(x, y);
-        });
-        
-        // Saat jari bergerak di dalam zone
-        this.zone.on('drag', (pointer, x, y) => {
-            if (this.isActive) {
-                this.updateKnob(x, y);
+        // Pointer Down - Mulai aktif
+        this.zone.on('pointerdown', (pointer) => {
+            if (!this.isActive) {
+                this.isActive = true;
+                this.pointerId = pointer.id;
+                this.updateKnob(pointer.x, pointer.y);
             }
         });
         
-        // Saat jari diangkat
-        this.zone.on('dragend', () => {
-            this.resetKnob();
+        // Pointer Move - Update posisi knob
+        this.scene.input.on('pointermove', (pointer) => {
+            if (this.isActive && pointer.id === this.pointerId) {
+                this.updateKnob(pointer.x, pointer.y);
+            }
+        });
+        
+        // Pointer Up - Reset
+        this.scene.input.on('pointerup', (pointer) => {
+            if (this.isActive && pointer.id === this.pointerId) {
+                this.resetKnob();
+            }
         });
     }
     
@@ -83,6 +84,7 @@ export default class VirtualJoystick {
     resetKnob() {
         this.isActive = false;
         this.isFiring = false;
+        this.pointerId = null;
         this.outputX = 0;
         this.outputY = 0;
         this.outputAngle = 0;
@@ -138,6 +140,7 @@ export default class VirtualJoystick {
     destroy() {
         this.isActive = false;
         this.isFiring = false;
+        this.pointerId = null;
         this.outputX = 0;
         this.outputY = 0;
         this.outputAngle = 0;

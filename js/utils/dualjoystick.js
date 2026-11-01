@@ -4,8 +4,8 @@ import VirtualJoystick from './virtualjoystick.js';
 export default class DualJoystickManager {
     constructor(scene) {
         this.scene = scene;
-        this.leftJoystick = null;  // ← TIDAK DIPAKAI
-        this.rightJoystick = null; // ← JOYSTICK AIM
+        this.leftJoystick = null;   // ← JOYSTICK GERAK (KIRI)
+        this.rightJoystick = null;  // ← JOYSTICK TEMBAK (KANAN)
         
         this.setupZones();
         this.createJoysticks();
@@ -17,25 +17,38 @@ export default class DualJoystickManager {
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
         
-        // ← HANYA JOYSTICK KANAN (AIM)
-        this.rightZoneX = width * 0.80;
+        // Joystick Kiri (Gerak) - Kiri Bawah
+        this.leftZoneX = width * 0.25;
+        this.leftZoneY = height * 0.80;
+        
+        // Joystick Kanan (Tembak) - Kanan Bawah
+        this.rightZoneX = width * 0.75;
         this.rightZoneY = height * 0.80;
     }
     
     createJoysticks() {
-        // ← TIDAK BUAT JOYSTICK KIRI
-        this.leftJoystick = null;
+        // JOYSTICK KIRI - Untuk Gerak (Cyan)
+        this.leftJoystick = new VirtualJoystick(
+            this.scene, this.leftZoneX, this.leftZoneY,
+            { 
+                baseRadius: 80, 
+                knobRadius: 30, 
+                color: 0x00ffff, // Cyan
+                isAimJoystick: false, 
+                autoFire: false 
+            }
+        );
         
-        // ← HANYA BUAT JOYSTICK KANAN (AIM)
+        // JOYSTICK KANAN - Untuk Aim + Auto Shoot (Ungu/Magenta)
         this.rightJoystick = new VirtualJoystick(
             this.scene, this.rightZoneX, this.rightZoneY,
             { 
                 baseRadius: 80, 
                 knobRadius: 30, 
-                color: 0xff00ff, // Ungu/Magenta
+                color: 0xff00ff, // Magenta
                 isAimJoystick: true, 
                 autoFire: true, 
-                fireInterval: 150 // Lebih cepat
+                fireInterval: 150 // Cepat
             }
         );
     }
@@ -45,11 +58,12 @@ export default class DualJoystickManager {
     }
     
     update(time) {
-        // ← HANYA UPDATE JOYSTICK KANAN
+        if (this.leftJoystick) this.leftJoystick.update(time);
         if (this.rightJoystick) this.rightJoystick.update(time);
     }
     
     destroy() {
+        if (this.leftJoystick) this.leftJoystick.destroy();
         if (this.rightJoystick) this.rightJoystick.destroy();
         this.scene.events.removeListener('joystick-fire');
     }

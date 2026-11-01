@@ -165,15 +165,12 @@ export default class WBCGame extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
  
-        // ✅ TOMBOL ARROW UNTUK MOBILE
-        if (this.isMobileMode) {
-            this.createMobileArrowButtons();
-        }
+   
    
         this.createFullscreenButton(width, height);
     }
 
-         update() {
+        update() {
         if (this.isPaused || this.isGameOver) return;
         
         this.enemies.children.iterate((enemy) => {
@@ -184,15 +181,29 @@ export default class WBCGame extends Phaser.Scene {
             if (bullet && bullet.active) bullet.updateBullet();
         });
         
-        // ✅ UPDATE JOYSTICK AIM
+        // ✅ UPDATE JOYSTICK
         if (this.joystickManager) {
             this.joystickManager.update(this.time.now);
         }
         
-        // ✅ MOVEMENT: PAKAI KEYBOARD (WASD/ARROW) - TETAP!
-        this.player.updateMovement(this.wasd, this.arrows);
+        // ✅ MOVEMENT: Joystick Kiri atau Keyboard
+        if (this.isMobileMode && this.joystickManager?.leftJoystick?.isActive) {
+            const joy = this.joystickManager.leftJoystick;
+            const speed = this.player.baseSpeed;
+            this.player.body.setVelocity(joy.outputX * speed, joy.outputY * speed);
+            
+            if (joy.outputX > 0.1) {
+                this.player.setFlipX(false);
+                this.player.isFlipped = false;
+            } else if (joy.outputX < -0.1) {
+                this.player.setFlipX(true);
+                this.player.isFlipped = true;
+            }
+        } else {
+            this.player.updateMovement(this.wasd, this.arrows);
+        }
         
-        // ✅ AIM: Joystick atau Mouse
+        // ✅ AIM: Joystick Kanan atau Mouse
         if (this.isMobileMode && this.joystickManager?.rightJoystick?.isActive) {
             const aimJoy = this.joystickManager.rightJoystick;
             this.mouseX = this.player.x + Math.cos(aimJoy.outputAngle) * 100;
@@ -493,62 +504,7 @@ export default class WBCGame extends Phaser.Scene {
         }
     }
 
-    // ===== FUNGSI TOMBOL PANAH UNTUK MOBILE =====
-    createMobileArrowButtons() {
-        const spacing = 85;
-        const startX = 130;
-        const startY = this.cameras.main.height - 130;
-        
-        // UP
-        this.createArrowButton(startX, startY - spacing, 'up', '▲');
-        // DOWN
-        this.createArrowButton(startX, startY + spacing, 'down', '▼');
-        // LEFT
-        this.createArrowButton(startX - spacing, startY, 'left', '◀');
-        // RIGHT
-        this.createArrowButton(startX + spacing, startY, 'right', '▶');
-    }
-    
-    createArrowButton(x, y, direction, symbol) {
-        const bg = this.add.rectangle(x, y, 70, 70, 0x000000, 0.4);
-        bg.setStrokeStyle(2, 0x00ffff, 0.8);
-        bg.setDepth(100);
-        
-        const text = this.add.text(x, y, symbol, {
-            font: 'bold 32px Arial',
-            fill: '#00ffff',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setDepth(101);
-        
-        if (!this.mobileButtons) this.mobileButtons = {};
-        this.mobileButtons[direction] = { bg, text };
-        
-        bg.setInteractive({ useHandCursor: true });
-        
-        bg.on('pointerdown', () => {
-            this.setMobileKey(direction, true);
-            bg.setFillStyle(0x00ffff, 0.3);
-        });
-        
-        bg.on('pointerup', () => {
-            this.setMobileKey(direction, false);
-            bg.setFillStyle(0x000000, 0.4);
-        });
-        
-        bg.on('pointerout', () => {
-            this.setMobileKey(direction, false);
-            bg.setFillStyle(0x000000, 0.4);
-        });
-    }
-    
-    setMobileKey(direction, isDown) {
-        if (direction === 'up') this.wasd.up.isDown = isDown;
-        if (direction === 'down') this.wasd.down.isDown = isDown;
-        if (direction === 'left') this.wasd.left.isDown = isDown;
-        if (direction === 'right') this.wasd.right.isDown = isDown;
-    }
-    
+  
 }
 
 // ===== CLASS WBC PLAYER =====
