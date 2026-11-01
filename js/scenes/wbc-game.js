@@ -1,7 +1,7 @@
 // wbc-game.js - White Blood Cell Game
 import { fullscreenManager } from '../utils/fullscreen.js';
-import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ TAMBAH INI
-import { getLang } from '../utils/translations.js'; // ✅ TAMBAH INI
+import DualJoystickManager from '../utils/dualjoystick.js';
+import { getLang } from '../utils/translations.js';
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
@@ -29,6 +29,9 @@ export default class WBCGame extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
+        // ✅ MOBILE CONSOLE
+        this.createMobileConsole();
+        
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
             bg.setDepth(0);
@@ -47,46 +50,30 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton = null;
         this.lastDamageTime = 0;
         
-        // ✅ GENERATE TEXTURE PELURU Y - DIPERKECIL (24x24)
         const bulletGraphics = this.add.graphics();
-        
-        // Batang vertikal Y (bagian bawah - Fc region)
-        bulletGraphics.lineStyle(4, 0xFFFF00, 1); // Kuning
+        bulletGraphics.lineStyle(4, 0xFFFF00, 1);
         bulletGraphics.lineBetween(12, 20, 12, 12);
-        
-        // Cabang kiri Y
         bulletGraphics.lineBetween(12, 12, 5, 5);
-        
-        // Cabang kanan Y
         bulletGraphics.lineBetween(12, 12, 19, 5);
-        
-        // Lingkaran di ujung cabang kiri (binding site - cyan)
         bulletGraphics.fillStyle(0x00FFFF, 1);
         bulletGraphics.fillCircle(5, 5, 3);
         bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
         bulletGraphics.strokeCircle(5, 5, 3);
-        
-        // Lingkaran di ujung cabang kanan (binding site - cyan)
         bulletGraphics.fillStyle(0x00FFFF, 1);
         bulletGraphics.fillCircle(19, 5, 3);
         bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
         bulletGraphics.strokeCircle(19, 5, 3);
-        
-        // Titik tengah Y (pertemuan cabang)
         bulletGraphics.fillStyle(0xFFFFFF, 1);
         bulletGraphics.fillCircle(12, 12, 2);
-        
         bulletGraphics.generateTexture('antibodyBulletTex', 24, 24);
         bulletGraphics.destroy();
         
         this.laserGraphics = this.add.graphics().setDepth(4);
         
-        // ✅ JUDUL - TERJEMAHAN
         this.add.text(30, 30, getLang('wbcTitle'), {
             font: 'bold 28px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        // ✅ SKOR - TERJEMAHAN
         this.scoreText = this.add.text(width - 30, 30, `${getLang('score')}: 0 / ${this.WIN_SCORE}`, {
             font: 'bold 28px Arial', fill: '#FFFFFF', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
@@ -97,7 +84,6 @@ export default class WBCGame extends Phaser.Scene {
         
         this.player = new WBCPlayer(this, width/2, height/2);
         
-        // ✅ WAJIB: Aktifkan multi-touch (maksimal 10 jari bersamaan)
         this.input.maxPointers = 10;
 
         this.input.on('pointermove', (pointer) => {
@@ -143,7 +129,6 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
 
-               // ✅ CEK MOBILE MODE & BUAT DUAL JOYSTICK
         const deviceMode = localStorage.getItem('evocell_device') || 'laptop';
         this.isMobileMode = deviceMode === 'mobile';
         
@@ -156,7 +141,6 @@ export default class WBCGame extends Phaser.Scene {
             });
         }
         
-        // ✅ MISI WBC - TERJEMAHAN
         const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
             font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
@@ -165,7 +149,7 @@ export default class WBCGame extends Phaser.Scene {
         this.createFullscreenButton(width, height);
     }
 
-       update() {
+    update() {
         if (this.isPaused || this.isGameOver) return;
         
         this.enemies.children.iterate((enemy) => {
@@ -180,7 +164,6 @@ export default class WBCGame extends Phaser.Scene {
             this.joystickManager.update(this.time.now);
         }
         
-        // ✅ MOVEMENT
         if (this.isMobileMode && this.joystickManager?.leftJoystick?.isActive) {
             const joy = this.joystickManager.leftJoystick;
             const speed = this.player.baseSpeed;
@@ -197,25 +180,20 @@ export default class WBCGame extends Phaser.Scene {
             this.player.updateMovement(this.wasd, this.arrows);
         }
         
-        // ✅ AIM - Update mouseX/mouseY dari joystick
         if (this.isMobileMode && this.joystickManager?.rightJoystick?.isActive) {
             const aimJoy = this.joystickManager.rightJoystick;
             this.mouseX = this.player.x + Math.cos(aimJoy.outputAngle) * 100;
             this.mouseY = this.player.y + Math.sin(aimJoy.outputAngle) * 100;
         }
         
-        // Selalu update laser sight
         this.updateLaserSight();
     }
 
-    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
     fireAntibodyAtAngle(angle) {
         if (this.isPaused || this.isGameOver) return;
-        
         const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
         this.bullets.add(bullet);
     }
-
     
     spawnEnemy() {
         if (this.isPaused || this.isGameOver) return;
@@ -244,17 +222,13 @@ export default class WBCGame extends Phaser.Scene {
         const dx = this.mouseX - this.player.x;
         const dy = this.mouseY - this.player.y;
         const angle = Math.atan2(dy, dx);
-        
         const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
         this.bullets.add(bullet);
     }
 
     handleBulletHit(bullet, enemy) {
         if (!bullet.active || !enemy.active) return;
-        
-        if (enemy.isWeakened) {
-            return;
-        }
+        if (enemy.isWeakened) return;
         
         if (enemy.hasShield) {
             enemy.removeShield();
@@ -266,15 +240,10 @@ export default class WBCGame extends Phaser.Scene {
         const roll = Phaser.Math.Between(1, 100);
         if (roll <= this.INSTAKILL_CHANCE) {
             enemy.destroy();
-            
             const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
             this.score += points;
             this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
-            
-            if (this.score >= this.WIN_SCORE) {
-                this.triggerVictory();
-            }
-            
+            if (this.score >= this.WIN_SCORE) this.triggerVictory();
             return;
         }
         
@@ -286,43 +255,31 @@ export default class WBCGame extends Phaser.Scene {
         if (this.isGameOver || this.isPaused || !enemy.active) return;
         
         const now = Date.now();
-        if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) {
-            return;
-        }
+        if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) return;
         
         if (!enemy.isWeakened) {
             this.lastDamageTime = now;
             this.player.takeDamage(1);
-            
             this.hpText.setText(`HP: ${this.player.HP}/500`);
             
-            if (this.player.HP > 250) {
-                this.hpText.setStyle({ fill: '#00FF00' });
-            } else if (this.player.HP > 100) {
-                this.hpText.setStyle({ fill: '#FFFF00' });
-            } else {
-                this.hpText.setStyle({ fill: '#FFA500' });
-            }
+            if (this.player.HP > 250) this.hpText.setStyle({ fill: '#00FF00' });
+            else if (this.player.HP > 100) this.hpText.setStyle({ fill: '#FFFF00' });
+            else this.hpText.setStyle({ fill: '#FFA500' });
             
-            if (this.player.HP <= 0) {
-                this.triggerGameOver();
-            }
+            if (this.player.HP <= 0) this.triggerGameOver();
             return;
         }
         
         const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
         this.score += points;
         this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
-        
         this.createEatParticles(enemy.x, enemy.y);
         enemy.destroy();
         
-        if (this.score >= this.WIN_SCORE) {
-            this.triggerVictory();
-        }
+        if (this.score >= this.WIN_SCORE) this.triggerVictory();
     }
 
-        togglePause() {
+    togglePause() {
         if (this.isGameOver) return;
         this.isPaused = !this.isPaused;
         if (this.isPaused) {
@@ -330,19 +287,18 @@ export default class WBCGame extends Phaser.Scene {
             this.enemies.children.iterate((e) => { if (e && e.body) e.body.setVelocity(0, 0); });
             this.bullets.children.iterate((b) => { if (b && b.body) b.body.setVelocity(0, 0); });
             this.showPauseMenu();
-            // ✅ Nonaktifkan joystick saat pause
             if (this.joystickManager) {
                 this.joystickManager.leftJoystick?.destroy();
                 this.joystickManager.rightJoystick?.destroy();
             }
         } else {
-            // ✅ Buat ulang joystick saat resume
             if (this.isMobileMode) {
                 this.joystickManager = new DualJoystickManager(this);
             }
             this.hidePauseMenu();
         }
     }
+    
     showPauseMenu() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -380,7 +336,6 @@ export default class WBCGame extends Phaser.Scene {
         }
     }
 
-    // ✅ VICTORY - TERJEMAHAN
     triggerVictory() {
         this.isGameOver = true;
         this.add.text(640, 300, getLang('wbcVictory'), {
@@ -389,7 +344,6 @@ export default class WBCGame extends Phaser.Scene {
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    // ✅ GAME OVER - TERJEMAHAN
     triggerGameOver() {
         this.isGameOver = true;
         this.add.text(640, 300, getLang('wbcGameOver'), {
@@ -456,38 +410,21 @@ export default class WBCGame extends Phaser.Scene {
 
     updateLaserSight() {
         this.laserGraphics.clear();
-        
         const dx = this.mouseX - this.player.x;
         const dy = this.mouseY - this.player.y;
         const angle = Math.atan2(dy, dx);
-        
         const laserLength = 400;
         const endX = this.player.x + Math.cos(angle) * laserLength;
         const endY = this.player.y + Math.sin(angle) * laserLength;
-        
         this.laserGraphics.lineStyle(1, 0x00FFFF, 0.3);
         this.laserGraphics.lineBetween(this.player.x, this.player.y, endX, endY);
-
-        
     }
-
-
-    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
-    fireAntibodyAtAngle(angle) {
-        if (this.isPaused || this.isGameOver) return;
-        
-        const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
-        this.bullets.add(bullet);
-    }
-
 
     createEatParticles(x, y) {
         for (let i = 0; i < 8; i++) {
             const particle = this.add.circle(x, y, 3, 0x00FF00);
             particle.setDepth(20);
-            
             const angle = (Math.PI * 2 / 8) * i;
-            
             this.tweens.add({
                 targets: particle,
                 x: particle.x + Math.cos(angle) * 50,
@@ -497,6 +434,34 @@ export default class WBCGame extends Phaser.Scene {
                 onComplete: () => particle.destroy()
             });
         }
+    }
+    
+    // ✅ MOBILE CONSOLE DEBUG
+    createMobileConsole() {
+        const consoleDiv = document.createElement('div');
+        consoleDiv.style.position = 'fixed';
+        consoleDiv.style.bottom = '10px';
+        consoleDiv.style.left = '10px';
+        consoleDiv.style.right = '10px';
+        consoleDiv.style.maxHeight = '150px';
+        consoleDiv.style.overflow = 'auto';
+        consoleDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        consoleDiv.style.color = '#00ff00';
+        consoleDiv.style.fontFamily = 'monospace';
+        consoleDiv.style.fontSize = '12px';
+        consoleDiv.style.padding = '10px';
+        consoleDiv.style.zIndex = '9999';
+        consoleDiv.id = 'mobileConsole';
+        document.body.appendChild(consoleDiv);
+        
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const msg = args.join(' ');
+            const div = document.createElement('div');
+            div.textContent = msg;
+            document.getElementById('mobileConsole').appendChild(div);
+        };
     }
 }
 
@@ -516,7 +481,6 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
         this.setTint(0xFFFFFF);
         this.setDepth(5);
         this.setCollideWorldBounds(true);
-        
         this.body.setCircle(this.radius);
     }
 
@@ -534,8 +498,8 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
             this.setFlipX(false); 
             this.isFlipped = false; 
         }
-        if (arrows.up.isDown || wasd.up.isDown) { vy = -this.baseSpeed; }
-        if (arrows.down.isDown || wasd.down.isDown) { vy = this.baseSpeed; }
+        if (arrows.up.isDown || wasd.up.isDown) vy = -this.baseSpeed;
+        if (arrows.down.isDown || wasd.down.isDown) vy = this.baseSpeed;
         
         if (vx !== 0 && vy !== 0) {
             vx *= 0.7071;
@@ -551,7 +515,7 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS ANTIBODY BULLET (BENTUK Y - DIPERKECIL & DIBALIK) =====
+// ===== CLASS ANTIBODY BULLET =====
 class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, angle) {
         super(scene, x, y, 'antibodyBulletTex');
@@ -560,16 +524,10 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
         
         this.moveSpeed = 600;
         this.radius = 10;
-        
         this.body.setCircle(this.radius);
         this.setDepth(6);
-        
         this.setRotation(angle + Math.PI / 2);
-        
-        this.body.setVelocity(
-            Math.cos(angle) * this.moveSpeed,
-            Math.sin(angle) * this.moveSpeed
-        );
+        this.body.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
         
         scene.time.delayedCall(3000, () => {
             if (this.active) this.destroy();
@@ -585,7 +543,7 @@ class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BACTERIA - DENGAN TAMENG =====
+// ===== CLASS BACTERIA =====
 class Bacteria extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, hasShield = false) {
         super(scene, x, y, 'bacteria');
@@ -598,23 +556,17 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
         this.setScale(0.8);
         this.setTint(0x66FF66);
         this.setDepth(3);
-        
         this.radius = 35;
         this.body.setCircle(this.radius);
-        
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
-        
         this.isWeakened = false;
         this.weakenTimer = 0;
         this.originalTint = 0x66FF66;
-        
         this.hasShield = hasShield;
         this.wasShielded = hasShield;
         this.shieldGraphics = null;
         
-        if (hasShield) {
-            this.createShield(scene);
-        }
+        if (hasShield) this.createShield(scene);
     }
 
     createShield(scene) {
@@ -639,7 +591,6 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
             this.shieldGraphics.clear();
             this.shieldGraphics.lineStyle(2, 0x00FFFF, 0.8);
             this.shieldGraphics.strokeCircle(0, 0, this.radius + 15);
-            
             this.scene.tweens.add({
                 targets: this.shieldGraphics,
                 alpha: 0,
@@ -672,40 +623,26 @@ class Bacteria extends Phaser.Physics.Arcade.Sprite {
 
     updateAI() {
         if (!this.body) return;
-        
-        if (this.isWeakened) {
-            if (Date.now() - this.weakenTimer > 6000) {
-                this.restoreNormal();
-            }
-        }
-        
+        if (this.isWeakened && Date.now() - this.weakenTimer > 6000) this.restoreNormal();
         if (this.shieldGraphics) {
             this.shieldGraphics.x = this.x;
             this.shieldGraphics.y = this.y;
         }
-        
-        if (Phaser.Math.Between(0, 100) < 2) {
-            this.direction += Phaser.Math.FloatBetween(-0.4, 0.4);
-        }
+        if (Phaser.Math.Between(0, 100) < 2) this.direction += Phaser.Math.FloatBetween(-0.4, 0.4);
         this.body.setVelocity(Math.cos(this.direction) * this.moveSpeed, Math.sin(this.direction) * this.moveSpeed);
         this.setFlipX(Math.cos(this.direction) > 0);
-        
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
-        if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) {
-            this.destroy();
-        }
+        if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) this.destroy();
     }
 
     destroy() {
-        if (this.shieldGraphics) {
-            this.shieldGraphics.destroy();
-        }
+        if (this.shieldGraphics) this.shieldGraphics.destroy();
         super.destroy();
     }
 }
 
-// ===== CLASS VIRUS ENEMY - DENGAN TAMENG =====
+// ===== CLASS VIRUS ENEMY =====
 class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, hasShield = false) {
         super(scene, x, y, 'virus');
@@ -719,23 +656,17 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
         this.setScale(1.2);
         this.setTint(0xFF00FF);
         this.setDepth(3);
-        
         this.radius = 30;
         this.body.setCircle(this.radius);
-        
         this.direction = Phaser.Math.Angle.Between(x, y, 640, 360) + Phaser.Math.FloatBetween(-0.5, 0.5);
-        
         this.isWeakened = false;
         this.weakenTimer = 0;
         this.originalTint = 0xFF00FF;
-        
         this.hasShield = hasShield;
         this.wasShielded = hasShield;
         this.shieldGraphics = null;
         
-        if (hasShield) {
-            this.createShield(scene);
-        }
+        if (hasShield) this.createShield(scene);
     }
 
     createShield(scene) {
@@ -760,7 +691,6 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
             this.shieldGraphics.clear();
             this.shieldGraphics.lineStyle(2, 0x00FFFF, 0.8);
             this.shieldGraphics.strokeCircle(0, 0, this.radius + 15);
-            
             this.scene.tweens.add({
                 targets: this.shieldGraphics,
                 alpha: 0,
@@ -793,35 +723,21 @@ class VirusEnemy extends Phaser.Physics.Arcade.Sprite {
 
     updateAI() {
         if (!this.body) return;
-        
-        if (this.isWeakened) {
-            if (Date.now() - this.weakenTimer > 6000) {
-                this.restoreNormal();
-            }
-        }
-        
+        if (this.isWeakened && Date.now() - this.weakenTimer > 6000) this.restoreNormal();
         if (this.shieldGraphics) {
             this.shieldGraphics.x = this.x;
             this.shieldGraphics.y = this.y;
         }
-        
-        if (Phaser.Math.Between(0, 100) < 2) {
-            this.direction += Phaser.Math.FloatBetween(-0.4, 0.4);
-        }
+        if (Phaser.Math.Between(0, 100) < 2) this.direction += Phaser.Math.FloatBetween(-0.4, 0.4);
         this.body.setVelocity(Math.cos(this.direction) * this.moveSpeed, Math.sin(this.direction) * this.moveSpeed);
         this.setFlipX(Math.cos(this.direction) > 0);
-        
         const width = this.scene.cameras.main.width;
         const height = this.scene.cameras.main.height;
-        if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) {
-            this.destroy();
-        }
+        if (this.x < -200 || this.x > width + 200 || this.y < -200 || this.y > height + 200) this.destroy();
     }
 
     destroy() {
-        if (this.shieldGraphics) {
-            this.shieldGraphics.destroy();
-        }
+        if (this.shieldGraphics) this.shieldGraphics.destroy();
         super.destroy();
     }
 }
