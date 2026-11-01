@@ -18,11 +18,11 @@ export default class DualJoystickManager {
         const height = this.scene.cameras.main.height;
         
         // Joystick Kiri (Gerak) - Kiri Bawah
-        this.leftZoneX = width * 0.25;
+        this.leftZoneX = width * 0.10;
         this.leftZoneY = height * 0.80;
         
         // Joystick Kanan (Tembak) - Kanan Bawah
-        this.rightZoneX = width * 0.75;
+        this.rightZoneX = width * 0.90;
         this.rightZoneY = height * 0.80;
     }
     
