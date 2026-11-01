@@ -468,6 +468,16 @@ export default class WBCGame extends Phaser.Scene {
         
     }
 
+
+    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
+    fireAntibodyAtAngle(angle) {
+        if (this.isPaused || this.isGameOver) return;
+        
+        const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
+        this.bullets.add(bullet);
+    }
+
+
     createEatParticles(x, y) {
         for (let i = 0; i < 8; i++) {
             const particle = this.add.circle(x, y, 3, 0x00FF00);
