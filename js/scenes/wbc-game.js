@@ -1,7 +1,7 @@
 // wbc-game.js - White Blood Cell Game
 import { fullscreenManager } from '../utils/fullscreen.js';
-import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ BENAR (tanpa kurung kurawal)
-import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
+import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ TAMBAH INI
+import { getLang } from '../utils/translations.js'; // ✅ TAMBAH INI
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
