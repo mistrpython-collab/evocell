@@ -1,5 +1,6 @@
 // wbc-game.js - White Blood Cell Game
 import { fullscreenManager } from '../utils/fullscreen.js';
+import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ BENAR (tanpa kurung kurawal)
 import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
 
 export default class WBCGame extends Phaser.Scene {
@@ -138,6 +139,19 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerover', () => this.pauseButton.setDisplaySize(pauseBtnSize * 1.1, pauseBtnSize * 1.1));
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
+
+               // ✅ CEK MOBILE MODE & BUAT DUAL JOYSTICK
+        const deviceMode = localStorage.getItem('evocell_device') || 'laptop';
+        this.isMobileMode = deviceMode === 'mobile';
+        
+        if (this.isMobileMode) {
+            console.log('📱 Mobile mode - Creating dual joysticks');
+            this.joystickManager = new DualJoystickManager(this);
+            
+            this.events.on('wbc-auto-fire', (data) => {
+                this.fireAntibodyAtAngle(data.angle);
+            });
+        }
         
         // ✅ MISI WBC - TERJEMAHAN
         const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
@@ -148,7 +162,7 @@ export default class WBCGame extends Phaser.Scene {
         this.createFullscreenButton(width, height);
     }
 
-    update() {
+       update() {
         if (this.isPaused || this.isGameOver) return;
         
         this.enemies.children.iterate((enemy) => {
@@ -159,10 +173,47 @@ export default class WBCGame extends Phaser.Scene {
             if (bullet && bullet.active) bullet.updateBullet();
         });
         
-        this.player.updateMovement(this.wasd, this.arrows);
+        if (this.joystickManager) {
+            this.joystickManager.update(this.time.now);
+        }
+        
+        // ✅ MOVEMENT
+        if (this.isMobileMode && this.joystickManager?.leftJoystick?.isActive) {
+            const joy = this.joystickManager.leftJoystick;
+            const speed = this.player.baseSpeed;
+            this.player.body.setVelocity(joy.outputX * speed, joy.outputY * speed);
+            
+            if (joy.outputX > 0.1) {
+                this.player.setFlipX(false);
+                this.player.isFlipped = false;
+            } else if (joy.outputX < -0.1) {
+                this.player.setFlipX(true);
+                this.player.isFlipped = true;
+            }
+        } else {
+            this.player.updateMovement(this.wasd, this.arrows);
+        }
+        
+        // ✅ AIM - Update mouseX/mouseY dari joystick
+        if (this.isMobileMode && this.joystickManager?.rightJoystick?.isActive) {
+            const aimJoy = this.joystickManager.rightJoystick;
+            this.mouseX = this.player.x + Math.cos(aimJoy.outputAngle) * 100;
+            this.mouseY = this.player.y + Math.sin(aimJoy.outputAngle) * 100;
+        }
+        
+        // Selalu update laser sight
         this.updateLaserSight();
     }
 
+    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
+    fireAntibodyAtAngle(angle) {
+        if (this.isPaused || this.isGameOver) return;
+        
+        const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
+        this.bullets.add(bullet);
+    }
+
+    
     spawnEnemy() {
         if (this.isPaused || this.isGameOver) return;
         
@@ -268,7 +319,7 @@ export default class WBCGame extends Phaser.Scene {
         }
     }
 
-    togglePause() {
+        togglePause() {
         if (this.isGameOver) return;
         this.isPaused = !this.isPaused;
         if (this.isPaused) {
@@ -276,11 +327,19 @@ export default class WBCGame extends Phaser.Scene {
             this.enemies.children.iterate((e) => { if (e && e.body) e.body.setVelocity(0, 0); });
             this.bullets.children.iterate((b) => { if (b && b.body) b.body.setVelocity(0, 0); });
             this.showPauseMenu();
+            // ✅ Nonaktifkan joystick saat pause
+            if (this.joystickManager) {
+                this.joystickManager.leftJoystick?.destroy();
+                this.joystickManager.rightJoystick?.destroy();
+            }
         } else {
+            // ✅ Buat ulang joystick saat resume
+            if (this.isMobileMode) {
+                this.joystickManager = new DualJoystickManager(this);
+            }
             this.hidePauseMenu();
         }
     }
-
     showPauseMenu() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -405,6 +464,8 @@ export default class WBCGame extends Phaser.Scene {
         
         this.laserGraphics.lineStyle(1, 0x00FFFF, 0.3);
         this.laserGraphics.lineBetween(this.player.x, this.player.y, endX, endY);
+
+        
     }
 
     createEatParticles(x, y) {
