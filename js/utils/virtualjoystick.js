@@ -30,7 +30,7 @@ export default class VirtualJoystick {
     
     setupInput() {
         // Zone deteksi lebih besar
-        const zoneSize = this.baseRadius * 3;
+        const zoneSize = this.baseRadius * 2.5;
         
         this.zone = this.scene.add.zone(
             this.baseX, 
