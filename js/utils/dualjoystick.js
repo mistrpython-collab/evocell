@@ -31,8 +31,8 @@ export default class DualJoystickManager {
         this.leftJoystick = new VirtualJoystick(
             this.scene, this.leftZoneX, this.leftZoneY,
             { 
-                baseRadius: 110, 
-                knobRadius: 80, 
+                baseRadius: 112, 
+                knobRadius: 81, 
                 color: 0x00ffff, // Cyan
                 isAimJoystick: false, 
                 autoFire: false 
