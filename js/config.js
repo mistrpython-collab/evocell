@@ -8,6 +8,7 @@ import VirusGame from "./scenes/virus-game.js"; // ✅ TAMBAH INI
 import WBCGame from "./scenes/wbc-game.js";
 import CellDodgerScene from "./scenes/cell-dodger-scene.js"; // ✅ TAMBAH INI
 import DeviceModeScene from "./scenes/device-mode-scene.js"; // ✅ TAMBAHKAN INI!
+import VirusGame2 from './scenes/virus-game2.js';
 
 console.log("Loading config...");
 
@@ -26,7 +27,8 @@ const config = {
         ProkaryoticGame,
         VirusGame,
         WBCGame,
-        CellDodgerScene
+        CellDodgerScene,
+        VirusGame2
     ],
     physics: {
         default: "arcade",

@@ -2,7 +2,9 @@
 import { getLang } from '../utils/translations.js';
 
 export default class ModeSelectScene extends Phaser.Scene {
-    constructor() { super("ModeSelectScene"); }
+    constructor() { 
+        super("ModeSelectScene"); 
+    }
 
     init(data) {
         this.selectedRole = data.role || "prokaryotic";
@@ -13,16 +15,23 @@ export default class ModeSelectScene extends Phaser.Scene {
         const height = this.cameras.main.height;
 
         this.add.image(width/2, height/2, "bgMain");
-        this.add.text(width/2, 60, getLang('selectMission'), { font: "bold 42px Arial", fill: "#00ff00", stroke: "#000000", strokeThickness: 4 }).setOrigin(0.5);
+        this.add.text(width/2, 60, getLang('selectMission'), { 
+            font: "bold 42px Arial", 
+            fill: "#00ff00", 
+            stroke: "#000000", 
+            strokeThickness: 4 
+        }).setOrigin(0.5);
 
         if (this.selectedRole === "prokaryotic") {
             this.createModeCard(width/2-380, height/2+20, `${getLang('mission')} 1`, this.selectedRole, getLang('learnBasics'));
             this.createModeCard(width/2, height/2+20, `${getLang('mission')} 2`, this.selectedRole, getLang('challengeBoss'));
             this.createModeCard(width/2+380, height/2+20, `${getLang('mission')} 3`, "prokaryotic", getLang('avoidObstacles'));
-        } else if (this.selectedRole === "virus") {
+        } 
+        else if (this.selectedRole === "virus") {
             this.createModeCard(width/2-190, height/2+20, `${getLang('mission')} 1`, this.selectedRole, getLang('learnBasics'));
             this.createModeCard(width/2+190, height/2+20, `${getLang('mission')} 2`, this.selectedRole, getLang('challengeBoss'));
-        } else if (this.selectedRole === "wbc") {
+        } 
+        else if (this.selectedRole === "wbc") {
             this.createModeCard(width/2-190, height/2+20, `${getLang('mission')} 1`, this.selectedRole, getLang('learnBasics'));
             this.createModeCard(width/2+190, height/2+20, `${getLang('mission')} 2`, this.selectedRole, getLang('challengeBoss'));
         }
@@ -46,17 +55,22 @@ export default class ModeSelectScene extends Phaser.Scene {
         charPreview.setScale(3.5);
         card.add(charPreview);
 
-        const titleText = this.add.text(0, 120, modeTitle, { font: "bold 32px Arial", fill: "#00ff00", stroke: "#000000", strokeThickness: 3 }).setOrigin(0.5);
+        const titleText = this.add.text(0, 120, modeTitle, { 
+            font: "bold 32px Arial", 
+            fill: "#00ff00", 
+            stroke: "#000000", 
+            strokeThickness: 3 
+        }).setOrigin(0.5);
         card.add(titleText);
 
         const playBtn = this.add.image(0, 180, "btnPlay");
         playBtn.setScale(0.13).setInteractive({ useHandCursor: true });
         playBtn.on("pointerover", () => playBtn.setScale(0.14));
         playBtn.on("pointerout", () => playBtn.setScale(0.13));
-               playBtn.on("pointerdown", () => {
+        
+        // ✅ LOGIKA ROUTING SCENE YANG DIPERBAIKI
+        playBtn.on("pointerdown", () => {
             let gameScene = 'ProkaryoticGame';
-            
-            // ✅ Tentukan misi internal (selalu pakai "Misi X")
             let internalMission = "Misi 1";
             
             if (modeTitle.includes("3")) {
@@ -66,8 +80,17 @@ export default class ModeSelectScene extends Phaser.Scene {
                 internalMission = "Misi 2";
             }
 
-            if (character === 'virus') gameScene = 'VirusGame';
-            else if (character === 'wbc') gameScene = 'WBCGame';
+            // ✅ Jika Virus, cek apakah Misi 2 atau Misi 1
+            if (character === 'virus') {
+                if (internalMission === "Misi 2") {
+                    gameScene = 'VirusGame2'; // <-- Arahkan ke file baru virus-game2.js
+                } else {
+                    gameScene = 'VirusGame';  // <-- Tetap pakai file lama untuk Misi 1
+                }
+            } 
+            else if (character === 'wbc') {
+                gameScene = 'WBCGame';
+            }
             
             this.scene.start(gameScene, { 
                 role: character, 
@@ -75,12 +98,14 @@ export default class ModeSelectScene extends Phaser.Scene {
                 mission: internalMission
             });
         });
+        
         card.add(playBtn);
 
         card.setSize(cardWidth, cardHeight).setInteractive({ useHandCursor: true });
         card.on("pointerdown", () => playBtn.emit("pointerdown"));
         card.on("pointerover", () => card.setScale(1.03));
         card.on("pointerout", () => card.setScale(1));
+        
         return card;
     }
 }

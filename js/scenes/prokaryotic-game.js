@@ -68,7 +68,10 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         
-        this.add.text(30, 30, getLang('prokaryoticTitle'), {
+// ✅ Ambil nomor misi otomatis ("Misi 2" -> "2")
+const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
+
+        this.add.text(30, 30, `${getLang('prokaryoticTitle')} ${missionNumber}`, {
             font: 'bold 28px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         

@@ -40,7 +40,7 @@ export default class VirusGame extends Phaser.Scene {
         this.pauseButton = null;
         
         // ✅ JUDUL - TERJEMAHAN
-        this.add.text(30, 30, getLang('virusTitle'), {
+        this.add.text(30, 30, `${getLang('virusTitle')} 1`, {
             font: 'bold 28px Arial', fill: '#ff00ff', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
