@@ -13,9 +13,9 @@ export default class VirusGame2 extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 2';
         
-        this.WIN_SCORE = 12500;          // Skor untuk memunculkan boss
+        this.WIN_SCORE = 120;          // Skor untuk memunculkan boss
         this.KILL_SCORE = 14000;         // ✅ Skor untuk bisa membunuh boss
-        this.BOSS_CONTACT_DAMAGE = 20;   // ✅ Damage kena sentuh boss
+        this.BOSS_CONTACT_DAMAGE = 15;   // ✅ Damage kena sentuh boss
         this.WBC_SPAWN_DELAY = 550;
         this.INFECTION_COOLDOWN = 5000;
         this.DAMAGE_PER_TICK = 5;
@@ -538,7 +538,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         //   - Setelah boss spawn (skor 12500+)
         // Lebih cepat dari WBC biasa (max 120) DAN boss (110)
          this.normalSpeed = 40;        // ✅ Setelah 5 detik: SANGAT PELAN (sama seperti Misi 1)
-        this.bossPhaseSpeed = 150;    // ✅ Saat boss muncul: sedikit lebih cepat dari boss (110)
+        this.bossPhaseSpeed = 180;    // ✅ Saat boss muncul: sedikit lebih cepat dari boss (110)
         this.dashSpeed = 500;
         this.currentSpeed = this.initialSpeed;
         
