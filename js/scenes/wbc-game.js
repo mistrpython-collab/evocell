@@ -2,6 +2,7 @@
 import { fullscreenManager } from '../utils/fullscreen.js';
 import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ TAMBAH INI
 import { getLang } from '../utils/translations.js'; // ✅ TAMBAH INI
+import { DeviceMode } from '../utils/devicemanager.js'; // ✅ TAMBAH INI
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
@@ -146,18 +147,25 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
 
-               // ✅ CEK MOBILE MODE & BUAT DUAL JOYSTICK
-        const deviceMode = localStorage.getItem('evocell_device') || 'laptop';
-        this.isMobileMode = deviceMode === 'mobile';
-        
-        if (this.isMobileMode) {
-            console.log('📱 Mobile mode - Creating dual joysticks');
-            this.joystickManager = new DualJoystickManager(this);
-            
-            this.events.on('wbc-auto-fire', (data) => {
-                this.fireAntibodyAtAngle(data.angle);
-            });
-        }
+        // ✅ DEVICE MODE - TERPUSAT
+this.deviceMode = DeviceMode.getMode();
+this.isMobileMode = DeviceMode.isMobile();
+this.isLaptopMode = DeviceMode.isLaptop();
+this.isPCMode = DeviceMode.isPC();
+
+if (this.isMobileMode) {
+    // 📱 MOBILE: Dual Joystick
+    console.log('📱 Mobile mode - Dual Joystick');
+    this.joystickManager = new DualJoystickManager(this);
+    this.events.on('wbc-auto-fire', (data) => {
+        this.fireAntibodyAtAngle(data.angle);
+    });
+} else if (this.isLaptopMode) {
+    // 💻 LAPTOP: Keyboard + Mouse + AUTO-SHOOT
+    console.log('💻 Laptop mode - Keyboard + Mouse + Auto-shoot');
+    this.setupLaptopAutoShoot();
+}
+// ️ PC: Keyboard + Mouse manual (tidak ada tambahan)
         
         // ✅ MISI WBC - TERJEMAHAN
         const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
@@ -339,11 +347,22 @@ export default class WBCGame extends Phaser.Scene {
             if (this.joystickManager) {
                 this.joystickManager.leftJoystick?.destroy();
                 this.joystickManager.rightJoystick?.destroy();
+                            // ✅ Nonaktifkan auto-shoot laptop saat pause
+            if (this.laptopShootEvent) {
+                this.laptopShootEvent.paused = true;
+            }
+            
             }
         } else {
             // ✅ Buat ulang joystick saat resume
             if (this.isMobileMode) {
                 this.joystickManager = new DualJoystickManager(this);
+
+                            // ✅ Aktifkan kembali auto-shoot laptop saat resume
+            if (this.laptopShootEvent) {
+                this.laptopShootEvent.paused = false;
+            }
+
             }
             this.hidePauseMenu();
         }
@@ -484,6 +503,20 @@ export default class WBCGame extends Phaser.Scene {
         const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
         this.bullets.add(bullet);
     }
+
+// ✅ SETUP AUTO-SHOOT UNTUK LAPTOP (tanpa joystick, tanpa klik)
+setupLaptopAutoShoot() {
+    this.laptopShootEvent = this.time.addEvent({
+        delay: 300,
+        callback: () => {
+            if (!this.isPaused && !this.isGameOver) {
+                this.fireAntibody();
+            }
+        },
+        callbackScope: this,
+        loop: true
+    });
+}
 
 
     createEatParticles(x, y) {
