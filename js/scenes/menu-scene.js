@@ -8,6 +8,7 @@ export default class MenuScene extends Phaser.Scene {
         this.selectedRole = 0;
         this.roles = ['prokaryotic', 'virus', 'wbc'];
         this.fullscreenBtn = null;
+        this.guideBtn = null;
         
         // ✅ NAMA KARAKTER - Indonesia & Inggris
         this.roleNamesID = ['Prokariotik', 'Virus', 'Sel Darah Putih'];
@@ -76,11 +77,54 @@ export default class MenuScene extends Phaser.Scene {
 
         // Tombol Fullscreen
         this.createFullscreenButton(width, height);
+        
+        // ✅ TOMBOL PANDUAN LANGSUNG (tanpa popup)
+        this.createGuideButton(width, height);
+    }
+
+    // ✅ TOMBOL PANDUAN - LANGSUNG BUKA PDF SESUAI BAHASA AKTIF
+    createGuideButton(width, height) {
+        // Posisi di bawah tombol fullscreen (pojok kanan atas)
+        const guideBtn = this.add.text(width - 60, 120, '📖 Panduan/Guides', {
+            font: 'bold 20px Arial',
+            fill: '#ffff00',
+            stroke: '#000000',
+            strokeThickness: 3,
+            backgroundColor: '#333300',
+            padding: { x: 15, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        guideBtn.on('pointerover', () => {
+            guideBtn.setStyle({ fill: '#ffffff', backgroundColor: '#555500' });
+            guideBtn.setScale(1.05);
+        });
+
+        guideBtn.on('pointerout', () => {
+            guideBtn.setStyle({ fill: '#ffff00', backgroundColor: '#333300' });
+            guideBtn.setScale(1);
+        });
+
+        guideBtn.on('pointerdown', () => {
+            // ✅ LANGSUNG buka PDF sesuai bahasa yang sedang aktif
+            const currentLang = getCurrentLang();
+            if (window.openGuide) {
+                window.openGuide(currentLang);
+            }
+        });
+        
+        this.guideBtn = guideBtn;
     }
 
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
-        this.fullscreenBtn = this.add.text(width - 60, 60, '⛶', { font: 'bold 28px Arial', fill: '#00ff00', stroke: '#00cc00', strokeThickness: 3, backgroundColor: '#001a00', padding: { x: 12, y: 8 } });
+        this.fullscreenBtn = this.add.text(width - 60, 60, '', { 
+            font: 'bold 28px Arial', 
+            fill: '#00ff00', 
+            stroke: '#00cc00', 
+            strokeThickness: 3, 
+            backgroundColor: '#001a00', 
+            padding: { x: 12, y: 8 } 
+        });
         this.fullscreenBtn.setOrigin(0.5).setDepth(1000).setInteractive({ useHandCursor: true });
         this.fullscreenBtn.on('pointerover', () => this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' }));
         this.fullscreenBtn.on('pointerout', () => this.fullscreenBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' }));
@@ -110,6 +154,13 @@ export default class MenuScene extends Phaser.Scene {
         if (this.selectedRole >= this.roles.length) this.selectedRole = 0;
         this.characterSprite.setTexture(this.roles[this.selectedRole]);
         this.roleText.setText(roleNames[this.selectedRole]);
-        this.tweens.add({ targets: this.characterSprite, scaleX: 3.3, scaleY: 3.3, duration: 100, yoyo: true, ease: 'Back.easeOut' });
+        this.tweens.add({ 
+            targets: this.characterSprite, 
+            scaleX: 3.3, 
+            scaleY: 3.3, 
+            duration: 100, 
+            yoyo: true, 
+            ease: 'Back.easeOut' 
+        });
     }
 }

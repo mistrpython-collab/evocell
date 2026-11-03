@@ -1,26 +1,310 @@
-/* style.css */
+/* ============================================
+   EVOCELL - STYLE.CSS
+   ============================================ */
+
+/* Reset & Base */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    background: #000000;
+html, body {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
-    touch-action: none; /* Prevent mobile scrolling */
+    background-color: #000000;
+    font-family: Arial, sans-serif;
+    touch-action: none; /* Mencegah scroll/zoom di mobile */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
-#game-container {
-    width: 100vw;
-    height: 100vh;
+/* ============================================
+   LOADING SCREEN
+   ============================================ */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #001a00 0%, #000000 100%);
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 10000;
 }
 
-canvas {
+.loading-content {
+    text-align: center;
+    color: #00ff00;
+}
+
+.loading-content h1 {
+    font-size: 64px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px #00ff00;
+    font-family: 'Arial Black', Arial, sans-serif;
+}
+
+.loading-content p {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #aaffaa;
+}
+
+.loading-bar {
+    width: 300px;
+    height: 20px;
+    background: #003300;
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.loading-progress {
+    width: 0%;
+    height: 100%;
+    background: #00ff00;
+    animation: loading 2s ease-in-out infinite;
+}
+
+@keyframes loading {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+}
+
+/* ============================================
+   GAME CONTAINER
+   ============================================ */
+#game-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#game-container canvas {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ============================================
+   ERROR MESSAGE
+   ============================================ */
+#error-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #330000;
+    color: #ff4444;
+    padding: 30px;
+    border: 2px solid #ff0000;
+    border-radius: 10px;
+    font-size: 18px;
+    text-align: center;
+    z-index: 10001;
+}
+
+/* ============================================
+   OVERLAY PANDUAN (HOW TO PLAY)
+   ============================================ */
+.guide-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.guide-container {
+    position: relative;
+    width: 90%;
+    max-width: 900px;
+    height: 85%;
+    max-height: 85vh;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.pdf-viewer {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.pdf-fallback {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    color: #333333;
+    font-family: Arial, sans-serif;
+}
+
+.pdf-fallback a {
+    color: #007bff;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+/* Tombol X (Close) */
+.close-guide-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #ff4444;
+    color: white;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.close-guide-btn:hover {
+    background: #ff0000;
+    transform: scale(1.1);
+}
+
+.close-guide-btn:active {
+    transform: scale(0.95);
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+@media (max-width: 768px) {
+    .loading-content h1 {
+        font-size: 42px;
+    }
+    
+    .loading-content p {
+        font-size: 16px;
+    }
+    
+    .loading-bar {
+        width: 250px;
+    }
+    
+    .guide-container {
+        width: 95%;
+        height: 90%;
+        border-radius: 8px;
+    }
+    
+    .close-guide-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        top: 5px;
+        right: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .loading-content h1 {
+        font-size: 32px;
+    }
+    
+    .guide-container {
+        width: 98%;
+        height: 92%;
+    }
+}
+
+/* ============================================
+   FULLSCREEN MODE
+   ============================================ */
+:-webkit-full-screen #game-container {
+    width: 100%;
+    height: 100%;
+}
+
+:-moz-full-screen #game-container {
+    width: 100%;
+    height: 100%;
+}
+
+:-ms-fullscreen #game-container {
+    width: 100%;
+    height: 100%;
+}
+
+:fullscreen #game-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================
+   ORIENTATION WARNING (Portrait di HP)
+   ============================================ */
+.orientation-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    color: #ff4444;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 99999;
+    font-size: 24px;
+    padding: 20px;
+}
+
+/* ============================================
+   ANIMASI & TRANSISI
+   ============================================ */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ============================================
+   SCROLLBAR CUSTOM (untuk PDF fallback)
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #001a00;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00ff00;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00cc00;
 }
