@@ -8,7 +8,7 @@
     <title>EvoCell - Survival Game</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- ✅ LOAD PHASER DULU SEBELUM GAME -->
+    <!-- Load Phaser -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
 </head>
 <body>
@@ -29,10 +29,10 @@
         <button onclick="location.reload()" style="margin-top:15px;padding:10px 20px;background:#00ff00;color:#000;border:none;cursor:pointer;border-radius:5px;">Refresh</button>
     </div>
 
-    <!-- ✅ OVERLAY PANDUAN -->
+    <!-- OVERLAY PANDUAN -->
     <div id="guideOverlay" class="guide-overlay">
         <div class="guide-container">
-            <button class="close-guide-btn" onclick="closeGuide()">✕</button>
+            <button class="close-guide-btn" onclick="closeGuide()"></button>
             <iframe id="guidePdfViewer" src="" class="pdf-viewer" title="Panduan"></iframe>
             <div class="pdf-fallback">
                 <p>Jika PDF tidak muncul, <a id="guidePdfLink" href="#" target="_blank">Klik di sini untuk membuka PDF</a>.</p>
@@ -40,19 +40,16 @@
         </div>
     </div>
 
-    <!-- ✅ Script untuk Buka/Tutup Overlay -->
+    <!-- Script untuk Buka/Tutup Overlay -->
     <script>
-        function openGuide(language) {
+        function openGuide() {
             const overlay = document.getElementById('guideOverlay');
             const viewer = document.getElementById('guidePdfViewer');
             const link = document.getElementById('guidePdfLink');
             
-            const pdfFile = language === 'id' 
-                ? 'assets/guides/howtoplay-id.pdf' 
-                : 'assets/guides/howtoplay-en.pdf';
-            
-            viewer.src = pdfFile;
-            link.href = pdfFile;
+            // Selalu buka 1 file PDF yang sama (bilingual)
+            viewer.src = 'assets/guides/howtoplay.pdf';
+            link.href = 'assets/guides/howtoplay.pdf';
             overlay.style.display = 'flex';
         }
         
@@ -70,7 +67,7 @@
         });
     </script>
 
-    <!-- ✅ LOAD GAME SETELAH PHASER SIAP -->
+    <!-- Load Game -->
     <script src="js/main.js" type="module"></script>
 </body>
 </html>
