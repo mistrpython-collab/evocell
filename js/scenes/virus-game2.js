@@ -1,5 +1,5 @@
 // virus-game2.js - Virus Misi 2 (Drain 5HP/detik + BOSS 1: WBC PENEMBAK)
-// Versi: DASH MANUAL (KLIK) + Timer kembali + Boss Kuning Pucat Besar
+// Versi: VIRUS BIRU PERMANEN + DASH 1 DETIK (tembus sel saat dash)
 import { fullscreenManager } from '../utils/fullscreen.js';
 import { getLang } from '../utils/translations.js';
 
@@ -17,7 +17,7 @@ export default class VirusGame2 extends Phaser.Scene {
         this.WIN_SCORE = 120;            // ⚠️ Nilai test (tetap 120 untuk cepat ke boss)
         this.KILL_SCORE = 14000;
         this.BOSS_CONTACT_DAMAGE = 15;
-        this.WBC_SPAWN_DELAY = 550;
+        this.WBC_SPAWN_DELAY = 350;
         this.INFECTION_COOLDOWN = 5000;
         this.DAMAGE_PER_TICK = 5;
         
@@ -81,7 +81,7 @@ export default class VirusGame2 extends Phaser.Scene {
             font: 'bold 24px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 3
         }).setDepth(10);
         
-        // ✅ TIMER KEMBALI (infeksi cooldown)
+        // ✅ TIMER
         this.timerText = this.add.text(30, 100, '⏱️ 5s', {
             font: 'bold 28px Arial',
             fill: '#00ffff',
@@ -102,7 +102,7 @@ export default class VirusGame2 extends Phaser.Scene {
             }
         });
         
-        // ✅ POINTER DOWN = DASH (jika dash ready)
+        // ✅ POINTER DOWN = DASH
         this.input.on('pointerdown', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
                 this.player.targetX = pointer.x;
@@ -171,10 +171,9 @@ export default class VirusGame2 extends Phaser.Scene {
         });
         
         this.player.updateAI();
-        this.updateTimerDisplay(); // ✅ TIMER UPDATE LAGI
+        this.updateTimerDisplay();
     }
 
-    // ✅ TIMER DISPLAY (sama seperti Misi 1)
     updateTimerDisplay() {
         const now = Date.now();
         const timeSinceInfection = now - this.player.lastInfectionTime;
@@ -218,6 +217,10 @@ export default class VirusGame2 extends Phaser.Scene {
 
     handleCollision(virus, wbc) {
         if (this.isGameOver || this.isPaused || !wbc.active) return;
+        
+        // ✅ SAAT DASH: TIDAK ADA INFEKSI! Virus menembus sel tanpa teleport
+        //    (supaya jalur dash tetap lurus & tidak terganggu)
+        if (virus.isDashing) return;
         
         const scoreValue = wbc.scoreValue;
         this.score += scoreValue;
@@ -342,7 +345,7 @@ export default class VirusGame2 extends Phaser.Scene {
 
     createInfectionParticles(x, y) {
         for (let i = 0; i < 8; i++) {
-            const particle = this.add.circle(x, y, 3, 0xFF00FF);
+            const particle = this.add.circle(x, y, 3, 0x4488FF);
             particle.setDepth(20);
             const angle = (Math.PI * 2 / 8) * i;
             this.tweens.add({
@@ -498,7 +501,7 @@ export default class VirusGame2 extends Phaser.Scene {
     }
 }
 
-// ===== CLASS VIRUS CELL (DASH MANUAL - KLIK UNTUK DASH) =====
+// ===== CLASS VIRUS CELL (BIRU PERMANEN + DASH 1 DETIK TEMBUS SEL) =====
 class VirusCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'virus');
@@ -510,7 +513,11 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.baseSpeed = 320;
         this.isFlipped = false;
         this.setScale(2.0);
-        this.setTint(0xFF00FF);
+        
+        // ✅ WARNA BIRU PERMANEN
+        this.baseColor = 0x4488FF;
+        this.setTint(this.baseColor);
+        
         this.setDepth(5);
         this.setCollideWorldBounds(true);
         
@@ -524,31 +531,27 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.initialPhaseStartTime = Date.now();
         this.initialSpeed = 130;
         
-        // ✅ SPEED NORMAL KEMBALI (tidak sangat pelan lagi)
-        this.normalSpeed = 150;       // ✅ Kembali ke normal cepat
-        this.bossPhaseSpeed = 180;    // Saat boss fight
+        this.normalSpeed = 150;
+        this.bossPhaseSpeed = 180;
         this.dashSpeed = 500;
         this.currentSpeed = this.initialSpeed;
         
         this.direction = Math.random() * Math.PI * 2;
         this.body.setCircle(this.radius);
         
-        // ✅ DASH MANUAL (KLIK)
+        // ✅ DASH MANUAL
         this.isDashing = false;
         this.canDash = false;
-        this.dashRechargeTime = 1000;     // 1 detik recharge
-        this.dashDuration = 800;          // Dash 0.8 detik
+        this.dashRechargeTime = 1000;     // Recharge 1 detik (setelah dash selesai)
+        this.dashDuration = 1000;         // ✅ DASH 1 DETIK (kembali dari 1.5 detik)
         this.lastDashTime = Date.now();
         this.dashDirection = 0;
         this.dashTrail = null;
         
         this.slowUntil = 0;
         
-        // ✅ LASER BIDIK (biru, tipis & pendek)
+        // ✅ LASER BIDIK (biru tipis & pendek)
         this.laserGraphics = scene.add.graphics().setDepth(4);
-        
-        // ✅ KEDIP BIRU SEMENTARA (tidak biru terus)
-        this.readyTween = null;
     }
 
     tryDash() {
@@ -562,82 +565,36 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         this.isDashing = true;
         this.canDash = false;
         this.dashDirection = Math.atan2(dy, dx);
-        this.lastDashTime = Date.now();
         
-        // Stop kedip biru langsung
-        if (this.readyTween) {
-            this.readyTween.stop();
-            this.readyTween = null;
-        }
-        this.setTint(0xFF4400); // Oranye saat dash
+        // ✅ Oranye saat dash
+        this.setTint(0xFF4400);
         
         this.dashTrail = this.scene.add.graphics().setDepth(3);
         
-        // Selesai dash
+        // ✅ SELESAI DASH (1 detik): kembali BIRU PERMANEN
         this.scene.time.delayedCall(this.dashDuration, () => {
             if (this.active) {
                 this.isDashing = false;
                 this.currentSpeed = this.normalSpeed;
-                this.setTint(0xFF00FF); // ✅ KEMBALI WARNA ASLI setelah dash
+                this.setTint(this.baseColor); // ✅ Kembali BIRU
+                this.lastDashTime = Date.now();
                 if (this.dashTrail) {
                     this.dashTrail.destroy();
                     this.dashTrail = null;
                 }
             }
         });
-        
-        // Recharge timer
-        this.scene.time.delayedCall(this.dashRechargeTime, () => {
-            if (this.active && !this.canDash && !this.isDashing) {
-                this.canDash = true;
-                this.startReadyGlow();
-            }
-        });
-    }
-
-    // ✅ KEDIP BIRU SEMENTARA (3 kedipan saja, lalu kembali warna asli)
-    startReadyGlow() {
-        if (this.readyTween) this.readyTween.stop();
-        
-        this.readyTween = this.scene.tweens.addCounter({
-            from: 0,
-            to: 1,
-            duration: 200,
-            repeat: 5,          // ✅ Hanya beberapa kedipan, BUKAN terus-menerus
-            yoyo: true,
-            onUpdate: (tween) => {
-                if (!this.active || this.isDashing) return;
-                const val = tween.getValue();
-                if (val > 0.5) {
-                    this.setTint(0x4488FF); // Biru terang
-                } else {
-                    this.setTint(0xFF00FF); // Ungu normal
-                }
-            },
-            onComplete: () => {
-                // ✅ Setelah kedip selesai, kembali ke warna ASLI (ungu)
-                if (this.active && !this.isDashing) {
-                    this.setTint(0xFF00FF);
-                }
-                this.readyTween = null;
-            }
-        });
     }
 
     resetAfterInfect() {
         this.isDashing = false;
-        if (this.readyTween) {
-            this.readyTween.stop();
-            this.readyTween = null;
-        }
         if (this.dashTrail) {
             this.dashTrail.destroy();
             this.dashTrail = null;
         }
-        this.setTint(0xFF00FF);
+        this.setTint(this.baseColor); // ✅ Tetap BIRU
         this.canDash = true;
         this.lastDashTime = Date.now();
-        this.startReadyGlow();
     }
 
     updateAI() {
@@ -647,13 +604,11 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         const timeSinceSpawn = currentTime - this.initialPhaseStartTime;
         const slowMult = (currentTime < this.slowUntil) ? 0.25 : 1;
         
-        // Update laser bidik
         this.updateLaserSight();
         
-        // Recharge dash otomatis
+        // ✅ Recharge: 1 detik SETELAH dash selesai
         if (!this.canDash && !this.isDashing && currentTime - this.lastDashTime >= this.dashRechargeTime) {
             this.canDash = true;
-            this.startReadyGlow();
         }
         
         // ✅ FASE 1: 5 DETIK PERTAMA
@@ -678,13 +633,13 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
             return;
         }
         
-        // ✅ SEDANG DASH
+        // ✅ SEDANG DASH (1 detik) - GERAK LURUS TANPA GANGGUAN
         if (this.isDashing) {
             this.updateDashMovement();
             return;
         }
         
-        // ✅ GERAKAN NORMAL (150 - tidak pelan lagi)
+        // ✅ GERAKAN NORMAL (150)
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -738,7 +693,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    // ✅ LASER TIPIS & PENDEK (250px saja)
+    // ✅ LASER TIPIS & PENDEK + CINCIN TANDA DASH SIAP
     updateLaserSight() {
         if (!this.laserGraphics) return;
         this.laserGraphics.clear();
@@ -746,21 +701,24 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const angle = Math.atan2(dy, dx);
-        const laserLength = 250; // ✅ LEBIH PENDEK (dari 400)
+        const laserLength = 250;
         
         const endX = this.x + Math.cos(angle) * laserLength;
         const endY = this.y + Math.sin(angle) * laserLength;
         
         if (this.canDash && !this.isDashing) {
-            // Dash siap: laser biru TIPIS
+            // Dash siap: laser biru TIPIS + TERANG
             this.laserGraphics.lineStyle(2, 0x4488FF, 0.4);
             this.laserGraphics.lineBetween(this.x, this.y, endX, endY);
             this.laserGraphics.lineStyle(1, 0x88BBFF, 0.7);
             this.laserGraphics.lineBetween(this.x, this.y, endX, endY);
             
-            // Target point kecil
             this.laserGraphics.fillStyle(0x4488FF, 0.7);
             this.laserGraphics.fillCircle(endX, endY, 4);
+            
+            // ✅ CINCIN TIPIS = tanda dash SIAP
+            this.laserGraphics.lineStyle(2, 0x88BBFF, 0.6);
+            this.laserGraphics.strokeCircle(this.x, this.y, this.radius * 2.2);
         } else if (!this.isDashing) {
             // Normal: laser sangat redup & tipis
             this.laserGraphics.lineStyle(1, 0x4488FF, 0.2);
@@ -769,9 +727,6 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
     }
 
     destroy() {
-        if (this.readyTween) {
-            this.readyTween.stop();
-        }
         if (this.dashTrail) {
             this.dashTrail.destroy();
         }
@@ -782,7 +737,7 @@ class VirusCell extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS WBC (Musuh biasa yang wandering) =====
+// ===== CLASS WBC (Musuh biasa) =====
 class WBC extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, sizeLevel) {
         super(scene, x, y, 'wbc');
@@ -841,20 +796,20 @@ class WBC extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS BOSS 1: WBC PENEMBAK (KUNING PUCAT + BESAR + LAMBAT) =====
+// ===== CLASS BOSS 1: WBC PENEMBAK (KUNING PUCAT + BESAR + CEPAT) =====
 class WBCBoss extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'wbc');
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
-        this.setScale(1.8);           // ✅ LEBIH BESAR dari musuh lain (max 1.0)
-        this.setTint(0xFFFFAA);       // ✅ KUNING PUCAT
+        this.setScale(1.8);           // ✅ Lebih besar dari musuh lain
+        this.setTint(0xFFFFAA);       // ✅ Kuning pucat
         this.setDepth(4);
-        this.radius = 15;             // Hitbox tetap kecil
+        this.radius = 15;
         this.body.setCircle(this.radius);
         
-        this.moveSpeed = 60;          // Lambat
+        this.moveSpeed = 125;         // ✅ Cepat (tapi kalah dari player 150/180)
         this.shootDelay = 5000;
         this.chargeTime = 1200;
         this.lastShot = Date.now();
@@ -920,7 +875,7 @@ class WBCBoss extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS MISIL BOSS (Bentuk Y, homing 3 detik) =====
+// ===== CLASS MISIL BOSS (homing 3 detik) =====
 class BossMissile extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, angle) {
         super(scene, x, y, 'antibodyBulletTex');
@@ -935,7 +890,7 @@ class BossMissile extends Phaser.Physics.Arcade.Sprite {
         this.body.setVelocity(Math.cos(angle) * this.moveSpeed, Math.sin(angle) * this.moveSpeed);
         
         this.spawnTime = Date.now();
-        this.homingDuration = 3000; // ✅ HOMING 3 DETIK
+        this.homingDuration = 2000;
         
         scene.time.delayedCall(7000, () => {
             if (this.active) this.destroy();

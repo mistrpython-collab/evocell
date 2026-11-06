@@ -85,7 +85,7 @@ export default class MenuScene extends Phaser.Scene {
     // ✅ TOMBOL PANDUAN - LANGSUNG BUKA PDF SESUAI BAHASA AKTIF
     createGuideButton(width, height) {
         // Posisi di bawah tombol fullscreen (pojok kanan atas)
-        const guideBtn = this.add.text(width - 60, 120, '📖 Panduan/Guides', {
+        const guideBtn = this.add.text(width / 2 + 500, height - 60, '📖 Panduan/Guides', {
             font: 'bold 20px Arial',
             fill: '#ffff00',
             stroke: '#000000',
