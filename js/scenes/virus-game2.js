@@ -14,7 +14,7 @@ export default class VirusGame2 extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 2';
         
-        this.WIN_SCORE = 12000;            // ⚠️ Nilai test (tetap 120 untuk cepat ke boss)
+        this.WIN_SCORE = 5000;            // ⚠️ Nilai test (tetap 120 untuk cepat ke boss)
         this.KILL_SCORE = 14000;
         this.BOSS_CONTACT_DAMAGE = 15;
         this.WBC_SPAWN_DELAY = 350;
@@ -288,9 +288,10 @@ export default class VirusGame2 extends Phaser.Scene {
         }
     }
 
-    handleBossCollision(virus, boss) {
+        handleBossCollision(virus, boss) {
         if (this.isGameOver || this.isPaused || !boss.active) return;
         
+        // ✅ BOSS SUDAH LEMAH → SENTUH = INFECT & MENANG
         if (this.bossVulnerable) {
             this.createInfectionParticles(boss.x, boss.y);
             this.createInfectionParticles(boss.x + 40, boss.y - 25);
@@ -302,6 +303,7 @@ export default class VirusGame2 extends Phaser.Scene {
             return;
         }
         
+        // ✅ BOSS MASIH KUAT → KENA = -15 HP + RESET POSISI + RESPAWN BOSS
         const now = Date.now();
         if (now - this.lastBossHitTime < 1500) return;
         this.lastBossHitTime = now;
@@ -333,14 +335,50 @@ export default class VirusGame2 extends Phaser.Scene {
             if (virus.active) virus.setAlpha(1);
         });
         
-        boss.lastShot = Date.now();
-        boss.stopCharge();
+        // ✅ HAPUS BOSS LAMA & RESPAWN 1.5 DETIK KEMUDIAN DI ATAS LAYAR
+        this.bossActive = false;
+        boss.destroy();
+        this.boss = null;
+        
+        this.time.delayedCall(1500, () => {
+            if (this.isGameOver || this.isPaused) return;
+            
+            const width = this.cameras.main.width;
+            
+            // Spawn boss baru di posisi semula (atas tengah layar)
+            this.boss = new WBCBoss(this, width / 2, -120);
+            this.boss.lastShot = Date.now(); // Reset siklus tembak (tidak langsung tembak)
+            this.bossActive = true;
+            
+            // Re-add overlap collision
+            this.physics.add.overlap(this.player, this.boss, this.handleBossCollision, null, this);
+        });
     }
 
-    handleMissileHit(virus, missile) {
+        handleMissileHit(virus, missile) {
         if (this.isGameOver || this.isPaused || !missile.active) return;
         missile.destroy();
-        virus.slowUntil = Date.now() + 1000;
+        
+        // ✅ SLOW 4 DETIK (dari 1 detik)
+        virus.slowUntil = Date.now() + 4000;
+        
+        // ✅ DAMAGE -1 HP saat kena peluru
+        virus.HP -= 1;
+        this.hpText.setText(`HP: ${virus.HP}/100`);
+        
+        // Update warna HP text
+        if (virus.HP > 50) {
+            this.hpText.setStyle({ fill: '#00ff00' });
+        } else if (virus.HP > 25) {
+            this.hpText.setStyle({ fill: '#ffff00' });
+        } else {
+            this.hpText.setStyle({ fill: '#ff0000' });
+        }
+        
+        // Cek game over
+        if (virus.HP <= 0) {
+            this.triggerGameOver();
+        }
     }
 
     createInfectionParticles(x, y) {
