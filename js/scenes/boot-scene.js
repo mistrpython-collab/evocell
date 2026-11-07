@@ -39,6 +39,7 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('virus', 'assets/images/virus/one-virus-magenta.png');
         this.load.image('wbc', 'assets/images/white-blood-cell/one-white-blood-cell.png');
         this.load.image('bacteria', 'assets/images/bacteria/one-bacteria-green.png');
+        this.load.image('wbcMisi1Image', 'assets/images/white-blood-cell/wbc-misi1.jpg'); // ✅ BARU
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
         
         // ✅ BACKGROUND VIRUS - Pastikan path benar
