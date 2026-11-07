@@ -14,11 +14,11 @@ export default class VirusGame2 extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 2';
         
-        this.WIN_SCORE = 120;            // ⚠️ Nilai test (tetap 120 untuk cepat ke boss)
+        this.WIN_SCORE = 12000;            // ⚠️ Nilai test (tetap 120 untuk cepat ke boss)
         this.KILL_SCORE = 14000;
         this.BOSS_CONTACT_DAMAGE = 15;
         this.WBC_SPAWN_DELAY = 350;
-        this.INFECTION_COOLDOWN = 5000;
+        this.INFECTION_COOLDOWN = 6000;
         this.DAMAGE_PER_TICK = 5;
         
         this.bossSpawned = false;
@@ -367,6 +367,7 @@ export default class VirusGame2 extends Phaser.Scene {
         
         if (timeSinceInfection > this.INFECTION_COOLDOWN) {
             this.player.HP -= this.DAMAGE_PER_TICK;
+            this.player.lastInfectionTime = now; // ✅ RESET TIMER setelah kena damage
             
             this.hpText.setText(`HP: ${this.player.HP}/100`);
             
