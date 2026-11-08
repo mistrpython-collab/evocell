@@ -1,12 +1,11 @@
 // wbc-game.js - White Blood Cell Game
 import { fullscreenManager } from '../utils/fullscreen.js';
-import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ TAMBAH INI
-import { getLang } from '../utils/translations.js'; // ✅ TAMBAH INI
-import { DeviceMode } from '../utils/devicemanager.js'; // ✅ TAMBAH INI
+import DualJoystickManager from '../utils/dualjoystick.js';
+import { getLang } from '../utils/translations.js';
+import { DeviceMode } from '../utils/devicemanager.js';
 
-// wbc-game.js - Bagian paling atas sebelum export default class WBCCGame
-let wbcBgm = null; // Instance Background Music khusus WBC
-let isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false'; // Default ON
+// ✅ HANYA status mute yang global (disimpan di localStorage)
+let isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false';
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
@@ -28,19 +27,15 @@ export default class WBCGame extends Phaser.Scene {
         
         this.mouseX = 0;
         this.mouseY = 0;
+        this.wbcBgm = null;
     }
 
     create(data) {
-        // ✅ STOP MAIN MENU MUSIC
-        const mainMenuMusic = this.sound.get('mainMenuMusic');
-        if (mainMenuMusic) {
-            mainMenuMusic.stop();
-        }
+        // ✅ Stop musik menu TANPA destroy (aman)
+        try { this.sound.stopByKey('mainMenuMusic'); } catch (e) {}
+
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        
-// ✅ TAMPILKAN CONSOLE DI LAYAR (untuk debug di HP)
-      
 
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
@@ -59,47 +54,50 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         this.lastDamageTime = 0;
+        this.wbcMusicToggleBtn = null;
+        this.laptopShootEvent = null;
+        this.joystickManager = null;
         
-        // ✅ GENERATE TEXTURE PELURU Y - DIPERKECIL (24x24)
-        const bulletGraphics = this.add.graphics();
+        // ✅ Setup musik WBC - aman, tanpa destroy manual
+        try {
+            this.sound.removeByKey('wbcMusic');
+            if (this.cache.audio.exists('wbcMusic')) {
+                this.wbcBgm = this.sound.add('wbcMusic', { loop: true, volume: 0.6 });
+                if (isWbcMusicOn) {
+                    this.wbcBgm.play();
+                }
+            }
+        } catch (e) {
+            this.wbcBgm = null;
+        }
         
-        // Batang vertikal Y (bagian bawah - Fc region)
-        bulletGraphics.lineStyle(4, 0xFFFF00, 1); // Kuning
-        bulletGraphics.lineBetween(12, 20, 12, 12);
-        
-        // Cabang kiri Y
-        bulletGraphics.lineBetween(12, 12, 5, 5);
-        
-        // Cabang kanan Y
-        bulletGraphics.lineBetween(12, 12, 19, 5);
-        
-        // Lingkaran di ujung cabang kiri (binding site - cyan)
-        bulletGraphics.fillStyle(0x00FFFF, 1);
-        bulletGraphics.fillCircle(5, 5, 3);
-        bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
-        bulletGraphics.strokeCircle(5, 5, 3);
-        
-        // Lingkaran di ujung cabang kanan (binding site - cyan)
-        bulletGraphics.fillStyle(0x00FFFF, 1);
-        bulletGraphics.fillCircle(19, 5, 3);
-        bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
-        bulletGraphics.strokeCircle(19, 5, 3);
-        
-        // Titik tengah Y (pertemuan cabang)
-        bulletGraphics.fillStyle(0xFFFFFF, 1);
-        bulletGraphics.fillCircle(12, 12, 2);
-        
-        bulletGraphics.generateTexture('antibodyBulletTex', 24, 24);
-        bulletGraphics.destroy();
+        // ✅ Texture peluru HANYA dibuat jika BELUM ada
+        if (!this.textures.exists('antibodyBulletTex')) {
+            const bulletGraphics = this.add.graphics();
+            bulletGraphics.lineStyle(4, 0xFFFF00, 1);
+            bulletGraphics.lineBetween(12, 20, 12, 12);
+            bulletGraphics.lineBetween(12, 12, 5, 5);
+            bulletGraphics.lineBetween(12, 12, 19, 5);
+            bulletGraphics.fillStyle(0x00FFFF, 1);
+            bulletGraphics.fillCircle(5, 5, 3);
+            bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
+            bulletGraphics.strokeCircle(5, 5, 3);
+            bulletGraphics.fillStyle(0x00FFFF, 1);
+            bulletGraphics.fillCircle(19, 5, 3);
+            bulletGraphics.lineStyle(1, 0xFFFFFF, 1);
+            bulletGraphics.strokeCircle(19, 5, 3);
+            bulletGraphics.fillStyle(0xFFFFFF, 1);
+            bulletGraphics.fillCircle(12, 12, 2);
+            bulletGraphics.generateTexture('antibodyBulletTex', 24, 24);
+            bulletGraphics.destroy();
+        }
         
         this.laserGraphics = this.add.graphics().setDepth(4);
         
-        // ✅ JUDUL - TERJEMAHAN
         this.add.text(30, 30, getLang('wbcTitle'), {
             font: 'bold 28px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
-        // ✅ SKOR - TERJEMAHAN
         this.scoreText = this.add.text(width - 30, 30, `${getLang('score')}: 0 / ${this.WIN_SCORE}`, {
             font: 'bold 28px Arial', fill: '#FFFFFF', stroke: '#000000', strokeThickness: 4
         }).setOrigin(1, 0).setDepth(10);
@@ -110,7 +108,6 @@ export default class WBCGame extends Phaser.Scene {
         
         this.player = new WBCPlayer(this, width/2, height/2);
         
-        // ✅ WAJIB: Aktifkan multi-touch (maksimal 10 jari bersamaan)
         this.input.maxPointers = 10;
 
         this.input.on('pointermove', (pointer) => {
@@ -156,38 +153,30 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
 
-        // ✅ DEVICE MODE - TERPUSAT
-this.deviceMode = DeviceMode.getMode();
-this.isMobileMode = DeviceMode.isMobile();
-this.isLaptopMode = DeviceMode.isLaptop();
-this.isPCMode = DeviceMode.isPC();
+        this.deviceMode = DeviceMode.getMode();
+        this.isMobileMode = DeviceMode.isMobile();
+        this.isLaptopMode = DeviceMode.isLaptop();
+        this.isPCMode = DeviceMode.isPC();
 
-if (this.isMobileMode) {
-    // 📱 MOBILE: Dual Joystick
-    console.log('📱 Mobile mode - Dual Joystick');
-    this.joystickManager = new DualJoystickManager(this);
-    this.events.on('wbc-auto-fire', (data) => {
-        this.fireAntibodyAtAngle(data.angle);
-    });
-} else if (this.isLaptopMode) {
-    // 💻 LAPTOP: Keyboard + Mouse + AUTO-SHOOT
-    console.log('💻 Laptop mode - Keyboard + Mouse + Auto-shoot');
-    this.setupLaptopAutoShoot();
-}
-// ️ PC: Keyboard + Mouse manual (tidak ada tambahan)
+        if (this.isMobileMode) {
+            this.joystickManager = new DualJoystickManager(this);
+            this.events.on('wbc-auto-fire', (data) => {
+                this.fireAntibodyAtAngle(data.angle);
+            });
+        } else if (this.isLaptopMode) {
+            this.setupLaptopAutoShoot();
+        }
         
-        // ✅ MISI WBC - TERJEMAHAN
         const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
             font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
  
-   
-   
         this.createFullscreenButton(width, height);
+        this.createGlobalMusicButton(width, height);
     }
 
-        update() {
+    update() {
         if (this.isPaused || this.isGameOver) return;
         
         this.enemies.children.iterate((enemy) => {
@@ -198,12 +187,10 @@ if (this.isMobileMode) {
             if (bullet && bullet.active) bullet.updateBullet();
         });
         
-        // ✅ UPDATE JOYSTICK
         if (this.joystickManager) {
             this.joystickManager.update(this.time.now);
         }
         
-        // ✅ MOVEMENT: Joystick Kiri atau Keyboard
         if (this.isMobileMode && this.joystickManager?.leftJoystick?.isActive) {
             const joy = this.joystickManager.leftJoystick;
             const speed = this.player.baseSpeed;
@@ -220,7 +207,6 @@ if (this.isMobileMode) {
             this.player.updateMovement(this.wasd, this.arrows);
         }
         
-        // ✅ AIM: Joystick Kanan atau Mouse
         if (this.isMobileMode && this.joystickManager?.rightJoystick?.isActive) {
             const aimJoy = this.joystickManager.rightJoystick;
             this.mouseX = this.player.x + Math.cos(aimJoy.outputAngle) * 100;
@@ -230,15 +216,12 @@ if (this.isMobileMode) {
         this.updateLaserSight();
     }
 
-    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
     fireAntibodyAtAngle(angle) {
         if (this.isPaused || this.isGameOver) return;
-        
         const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
         this.bullets.add(bullet);
     }
 
-    
     spawnEnemy() {
         if (this.isPaused || this.isGameOver) return;
         
@@ -274,9 +257,7 @@ if (this.isMobileMode) {
     handleBulletHit(bullet, enemy) {
         if (!bullet.active || !enemy.active) return;
         
-        if (enemy.isWeakened) {
-            return;
-        }
+        if (enemy.isWeakened) return;
         
         if (enemy.hasShield) {
             enemy.removeShield();
@@ -288,15 +269,10 @@ if (this.isMobileMode) {
         const roll = Phaser.Math.Between(1, 100);
         if (roll <= this.INSTAKILL_CHANCE) {
             enemy.destroy();
-            
             const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
             this.score += points;
             this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
-            
-            if (this.score >= this.WIN_SCORE) {
-                this.triggerVictory();
-            }
-            
+            if (this.score >= this.WIN_SCORE) this.triggerVictory();
             return;
         }
         
@@ -308,88 +284,75 @@ if (this.isMobileMode) {
         if (this.isGameOver || this.isPaused || !enemy.active) return;
         
         const now = Date.now();
-        if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) {
-            return;
-        }
+        if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) return;
         
         if (!enemy.isWeakened) {
             this.lastDamageTime = now;
             this.player.takeDamage(1);
-            
             this.hpText.setText(`HP: ${this.player.HP}/500`);
             
-            if (this.player.HP > 250) {
-                this.hpText.setStyle({ fill: '#00FF00' });
-            } else if (this.player.HP > 100) {
-                this.hpText.setStyle({ fill: '#FFFF00' });
-            } else {
-                this.hpText.setStyle({ fill: '#FFA500' });
-            }
+            if (this.player.HP > 250) this.hpText.setStyle({ fill: '#00FF00' });
+            else if (this.player.HP > 100) this.hpText.setStyle({ fill: '#FFFF00' });
+            else this.hpText.setStyle({ fill: '#FFA500' });
             
-            if (this.player.HP <= 0) {
-                this.triggerGameOver();
-            }
+            if (this.player.HP <= 0) this.triggerGameOver();
             return;
         }
         
         const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
         this.score += points;
         this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
-        
         this.createEatParticles(enemy.x, enemy.y);
         enemy.destroy();
         
-        if (this.score >= this.WIN_SCORE) {
-            this.triggerVictory();
-        }
+        if (this.score >= this.WIN_SCORE) this.triggerVictory();
     }
 
-        togglePause() {
+    togglePause() {
         if (this.isGameOver) return;
+        
         this.isPaused = !this.isPaused;
+        
         if (this.isPaused) {
-            this.player.body.setVelocity(0, 0);
+            if (this.player?.body) this.player.body.setVelocity(0, 0);
             this.enemies.children.iterate((e) => { if (e && e.body) e.body.setVelocity(0, 0); });
             this.bullets.children.iterate((b) => { if (b && b.body) b.body.setVelocity(0, 0); });
-            this.showPauseMenu();
-            // ✅ Nonaktifkan joystick saat pause
-            if (this.joystickManager) {
-                this.joystickManager.leftJoystick?.destroy();
-                this.joystickManager.rightJoystick?.destroy();
-                            // ✅ Nonaktifkan auto-shoot laptop saat pause
-            if (this.laptopShootEvent) {
-                this.laptopShootEvent.paused = true;
-            }
             
+            try { if (this.wbcBgm && this.wbcBgm.isPlaying) this.wbcBgm.pause(); } catch (e) {}
+            
+            this.showPauseMenu();
+            
+            if (this.joystickManager) {
+                if (this.joystickManager.leftJoystick) this.joystickManager.leftJoystick.destroy();
+                if (this.joystickManager.rightJoystick) this.joystickManager.rightJoystick.destroy();
             }
+            if (this.laptopShootEvent) this.laptopShootEvent.paused = true;
         } else {
-            // ✅ Buat ulang joystick saat resume
-            if (this.isMobileMode) {
-                this.joystickManager = new DualJoystickManager(this);
-
-                            // ✅ Aktifkan kembali auto-shoot laptop saat resume
-            if (this.laptopShootEvent) {
-                this.laptopShootEvent.paused = false;
-            }
-
-            }
+            try {
+                if (this.wbcBgm && isWbcMusicOn && !this.wbcBgm.isPlaying) this.wbcBgm.resume();
+            } catch (e) {}
+            
+            if (this.isMobileMode) this.joystickManager = new DualJoystickManager(this);
+            if (this.laptopShootEvent) this.laptopShootEvent.paused = false;
+            
             this.hidePauseMenu();
         }
     }
+
     showPauseMenu() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        this.pauseMenuContainer = this.add.container(0, 0).setDepth(20);
+        this.pauseMenuContainer = this.add.container(0, 0).setDepth(100);
+        
         const overlay = this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.7);
-        overlay.setInteractive();
         this.pauseMenuContainer.add(overlay);
         
         const panel = this.add.image(width/2, height/2, 'cardRock');
-        panel.setDisplaySize(500, 320);
+        panel.setDisplaySize(500, 390);
         this.pauseMenuContainer.add(panel);
         
-        const resumeBtn = this.add.image(width/2, height/2 - 40, 'resume-btn');
+        const resumeBtn = this.add.image(width/2, height/2 - 80, 'resume-btn');
         resumeBtn.setDisplaySize(300, 80);
         resumeBtn.setInteractive({ useHandCursor: true });
         resumeBtn.on('pointerover', () => resumeBtn.setDisplaySize(320, 85));
@@ -397,7 +360,7 @@ if (this.isMobileMode) {
         resumeBtn.on('pointerdown', () => this.togglePause());
         this.pauseMenuContainer.add(resumeBtn);
         
-        const exitBtn = this.add.image(width/2, height/2 + 70, 'exit-btn');
+        const exitBtn = this.add.image(width/2, height/2 + 20, 'exit-btn');
         exitBtn.setDisplaySize(300, 80);
         exitBtn.setInteractive({ useHandCursor: true });
         exitBtn.on('pointerover', () => exitBtn.setDisplaySize(320, 85));
@@ -413,7 +376,6 @@ if (this.isMobileMode) {
         }
     }
 
-    // ✅ VICTORY - TERJEMAHAN
     triggerVictory() {
         this.isGameOver = true;
         this.add.text(640, 300, getLang('wbcVictory'), {
@@ -422,7 +384,6 @@ if (this.isMobileMode) {
         this.time.delayedCall(3000, () => this.scene.start('MenuScene'));
     }
 
-    // ✅ GAME OVER - TERJEMAHAN
     triggerGameOver() {
         this.isGameOver = true;
         this.add.text(640, 300, getLang('wbcGameOver'), {
@@ -500,33 +461,20 @@ if (this.isMobileMode) {
         
         this.laserGraphics.lineStyle(1, 0x00FFFF, 0.3);
         this.laserGraphics.lineBetween(this.player.x, this.player.y, endX, endY);
-
-        
     }
 
-
-    // ✅ FUNGSI TEMBAK DENGAN ANGLE (untuk joystick auto-fire)
-    fireAntibodyAtAngle(angle) {
-        if (this.isPaused || this.isGameOver) return;
-        
-        const bullet = new AntibodyBullet(this, this.player.x, this.player.y, angle);
-        this.bullets.add(bullet);
+    setupLaptopAutoShoot() {
+        this.laptopShootEvent = this.time.addEvent({
+            delay: 300,
+            callback: () => {
+                if (!this.isPaused && !this.isGameOver) {
+                    this.fireAntibody();
+                }
+            },
+            callbackScope: this,
+            loop: true
+        });
     }
-
-// ✅ SETUP AUTO-SHOOT UNTUK LAPTOP (tanpa joystick, tanpa klik)
-setupLaptopAutoShoot() {
-    this.laptopShootEvent = this.time.addEvent({
-        delay: 300,
-        callback: () => {
-            if (!this.isPaused && !this.isGameOver) {
-                this.fireAntibody();
-            }
-        },
-        callbackScope: this,
-        loop: true
-    });
-}
-
 
     createEatParticles(x, y) {
         for (let i = 0; i < 8; i++) {
@@ -546,7 +494,56 @@ setupLaptopAutoShoot() {
         }
     }
 
-  
+    shutdown() {
+        try {
+            this.sound.stopByKey('wbcMusic');
+            this.sound.removeByKey('wbcMusic');
+        } catch (e) {}
+        this.wbcBgm = null;
+        isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false';
+    }
+
+    // ✅ TOMBOL SPEAKER - KIRI ATAS, TEPAT DI BAWAH "HP: 500/500"
+    createGlobalMusicButton(width, height) {
+        const posX = 30;    // sejajar kiri dengan teks HP
+        const posY = 105;   // tepat di bawah HP (HP di y=70)
+
+        this.wbcMusicToggleBtn = this.add.text(posX, posY, isWbcMusicOn ? '🔊' : '🔇', {
+            font: 'bold 32px Arial',
+            fill: '#00FF00',
+            stroke: '#000000',
+            strokeThickness: 3
+        })
+        .setOrigin(0, 0)
+        .setDepth(1000)
+        .setInteractive({ useHandCursor: true });
+
+        this.wbcMusicToggleBtn.on('pointerdown', () => {
+            isWbcMusicOn = !isWbcMusicOn;
+            if (this.wbcMusicToggleBtn) {
+                this.wbcMusicToggleBtn.setText(isWbcMusicOn ? '🔊' : '🔇');
+            }
+            
+            try {
+                if (this.wbcBgm) {
+                    if (isWbcMusicOn) {
+                        if (!this.wbcBgm.isPlaying) this.wbcBgm.resume();
+                    } else {
+                        this.wbcBgm.pause();
+                    }
+                }
+            } catch (e) {}
+            
+            localStorage.setItem('evocell_wbc_music', isWbcMusicOn.toString());
+        });
+
+        this.wbcMusicToggleBtn.on('pointerover', () => {
+            if (this.wbcMusicToggleBtn) this.wbcMusicToggleBtn.setScale(1.2);
+        });
+        this.wbcMusicToggleBtn.on('pointerout', () => {
+            if (this.wbcMusicToggleBtn) this.wbcMusicToggleBtn.setScale(1);
+        });
+    }
 }
 
 // ===== CLASS WBC PLAYER =====
@@ -600,7 +597,7 @@ class WBCPlayer extends Phaser.Physics.Arcade.Sprite {
     }
 }
 
-// ===== CLASS ANTIBODY BULLET (BENTUK Y - DIPERKECIL & DIBALIK) =====
+// ===== CLASS ANTIBODY BULLET =====
 class AntibodyBullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, angle) {
         super(scene, x, y, 'antibodyBulletTex');
