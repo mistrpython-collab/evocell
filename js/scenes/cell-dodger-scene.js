@@ -1,6 +1,6 @@
 // js/scenes/cell-dodger-scene.js
 import { fullscreenManager } from '../utils/fullscreen.js';
-import { getLang } from '../utils/translations.js'; // ✅ TAMBAH IMPORT
+import { getLang, getCurrentLang } from '../utils/translations.js';
 
 export default class CellDodgerScene extends Phaser.Scene {
     constructor() {
@@ -8,7 +8,33 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.fullscreenBtn = null;
     }
 
-    create() {
+    init(data) {
+        // ✅ KONFIGURASI ENDLESS MODE (nama variabel KONSISTEN: maxHP)
+        this.maxHP = 500;
+        this.playerHP = 5;
+        this.dna = 0;
+        this.survivalTime = 0;
+        this.isGameOver = false;
+        this.hasContinued = false;
+        this.lastHitTime = 0;
+
+        // ✅ REKOR dari localStorage
+        this.recordTime = parseFloat(localStorage.getItem('dodgerRecordTime') || '0');
+
+        // ✅ Label bahasa (aman, tidak butuh key translations baru)
+        const isID = getCurrentLang() === 'id';
+        this.lblTime = isID ? 'Waktu' : 'Time';
+        this.lblRecord = isID ? 'Rekor' : 'Record';
+        this.lblNewRecord = isID ? '🏆 REKOR BARU!' : '🏆 NEW RECORD!';
+          this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit'; // ✅ BARU
+    }
+
+    create(data){
+        // ✅ STOP MAIN MENU MUSIC
+        const mainMenuMusic = this.sound.get('mainMenuMusic');
+        if (mainMenuMusic) {
+            mainMenuMusic.stop();
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
@@ -22,18 +48,20 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.player = this.physics.add.sprite(width / 2, height - 100, "prokaryotic");
         this.player.setScale(2);
         this.player.setCollideWorldBounds(true);
+        this.player.setDepth(5);
 
-        // 3. ✅ DAFTAR 5 JENIS BAKTERI (termasuk original hijau)
+        // 3. ✅ DAFTAR 5 JENIS BAKTERI
         this.bacteriaTypes = [
-            'bacteria',          // Hijau original (yang lama)
-            'bacteriaBatang',    // Ungu, bentuk batang
-            'bacteriaSpiral',    // Biru, bentuk spiral
-            'bakteriRantai',     // Orange, bentuk rantai
-            'bakteriBulat'       // Hijau-kuning, bentuk bulat
+            'bacteria',
+            'bacteriaBatang',
+            'bacteriaSpiral',
+            'bakteriRantai',
+            'bakteriBulat'
         ];
 
-        // 4. Grup Rintangan
+        // 4. Grup Rintangan & DNA
         this.obstacles = this.physics.add.group();
+        this.dnaItems = this.physics.add.group();
 
         // 5. Spawn Rintangan setiap 800ms
         this.spawnEvent = this.time.addEvent({
@@ -43,7 +71,26 @@ export default class CellDodgerScene extends Phaser.Scene {
             loop: true
         });
 
-        // 6. Kontrol 4 Arah
+        // 6. Spawn DNA setiap 3 detik
+        this.dnaSpawnEvent = this.time.addEvent({
+            delay: 3000,
+            callback: this.spawnDNA,
+            callbackScope: this,
+            loop: true
+        });
+
+        // 7. Timer survival
+        this.timerEvent = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                this.survivalTime++;
+                this.updateHUD();
+            },
+            callbackScope: this,
+            loop: true
+        });
+
+        // 8. Kontrol 4 Arah
         this.cursors = this.input.keyboard.createCursorKeys();
         this.keys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -51,30 +98,276 @@ export default class CellDodgerScene extends Phaser.Scene {
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D
         });
+        this.input.keyboard.on('keydown-ESC', () => this.togglePause());
 
-        // 7. ✅ INSTRUKSI - TERJEMAHAN
-        this.add.text(width / 2, height - 40, getLang('dodgerInstruction'), {
+        // 9. ✅ INSTRUKSI - TERJEMAHAN (hilang setelah 5 detik)
+        const instruction = this.add.text(width / 2, height - 40, getLang('dodgerInstruction'), {
             font: "18px Arial",
             fill: "#ffffff",
             stroke: "#000000",
             strokeThickness: 3
         }).setOrigin(0.5);
+        this.time.delayedCall(5000, () => instruction.destroy());
 
-        // 8. Tombol Pause
+        // 10. HUD
+        this.createHUD();
+
+        // 11. Tombol Pause
         this.createPauseButton();
 
-        // 9. Pause Menu
+        // 12. Pause Menu
         this.createPauseMenu();
 
-        // 10. Cek Tabrakan
-        this.physics.add.collider(this.player, this.obstacles, this.hitObstacle, null, this);
+        // 13. Cek Tabrakan
+        this.physics.add.overlap(this.player, this.obstacles, this.hitObstacle, null, this);
+        this.physics.add.overlap(this.player, this.dnaItems, this.collectDNA, null, this);
 
         this.isPaused = false;
         this.score = 0;
         this.difficultyTimer = 0;
 
-        // ✅ TAMBAHAN 3: Panggil fungsi buat tombol fullscreen
+        // 14. Fullscreen
         this.createFullscreenButton(width, height);
+    }
+
+    createHUD() {
+        const width = this.cameras.main.width;
+
+        // Kiri atas: Waktu & HP
+        this.timeText = this.add.text(30, 30, `${this.lblTime}: 0s`, {
+            font: "bold 24px Arial",
+            fill: "#00ffff",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setDepth(10);
+
+        this.hpText = this.add.text(30, 62, `HP: ${this.playerHP}/${this.maxHP}`, {
+            font: "bold 24px Arial",
+            fill: "#00ff00",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setDepth(10);
+
+        // ✅ Kanan: DNA & Rekor DIPINDAH KE BAWAH tombol pause (y=110 & 142)
+        this.dnaText = this.add.text(width - 30, 110, `DNA: 0`, {
+            font: "bold 24px Arial",
+            fill: "#ff00ff",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setOrigin(1, 0).setDepth(10);
+
+        this.recordText = this.add.text(width - 30, 142, `${this.lblRecord}: ${this.recordTime}s`, {
+            font: "bold 20px Arial",
+            fill: "#ffff00",
+            stroke: "#000000",
+            strokeThickness: 3
+        }).setOrigin(1, 0).setDepth(10);
+    }
+
+    updateHUD() {
+        this.timeText.setText(`${this.lblTime}: ${this.survivalTime}s`);
+        this.hpText.setText(`HP: ${this.playerHP}/${this.maxHP}`);
+        this.dnaText.setText(`DNA: ${this.dna}`);
+        this.recordText.setText(`${this.lblRecord}: ${this.recordTime}s`);
+
+        if (this.playerHP <= 150) this.hpText.setColor('#ff4444');
+        else if (this.playerHP <= 300) this.hpText.setColor('#ffff00');
+        else this.hpText.setColor('#00ff00');
+    }
+
+    update() {
+        if (this.isPaused || this.isGameOver) return;
+
+        const speed = 300;
+        let velocityX = 0;
+        let velocityY = 0;
+
+        if (this.cursors.left.isDown || this.keys.left.isDown) {
+            velocityX = -speed;
+        } else if (this.cursors.right.isDown || this.keys.right.isDown) {
+            velocityX = speed;
+        }
+
+        if (this.cursors.up.isDown || this.keys.up.isDown) {
+            velocityY = -speed;
+        } else if (this.cursors.down.isDown || this.keys.down.isDown) {
+            velocityY = speed;
+        }
+
+        this.player.setVelocity(velocityX, velocityY);
+
+        this.difficultyTimer++;
+        if (this.difficultyTimer % 600 === 0) {
+            this.spawnEvent.delay = Math.max(300, this.spawnEvent.delay - 100);
+        }
+    }
+
+    spawnObstacle() {
+        if (this.isPaused || this.isGameOver) return;
+
+        const width = this.cameras.main.width;
+        const x = Phaser.Math.Between(50, width - 50);
+
+        const randomIndex = Phaser.Math.Between(0, this.bacteriaTypes.length - 1);
+        const bacteriaKey = this.bacteriaTypes[randomIndex];
+
+        const obstacle = this.obstacles.create(x, -50, bacteriaKey);
+
+        // ✅ SCALE ASLI KODE LAMA (jangan diubah!)
+        if (bacteriaKey === 'bakteriBulat') {
+            obstacle.setScale(0.04);
+        } else if (bacteriaKey === 'bakteriRantai') {
+            obstacle.setScale(0.05);
+        } else if (bacteriaKey === 'bacteriaSpiral') {
+            obstacle.setScale(0.05);
+        } else if (bacteriaKey === 'bacteriaBatang') {
+            obstacle.setScale(0.04);
+        } else {
+            obstacle.setScale(0.8);
+        }
+
+        const fallSpeed = Phaser.Math.Between(150, 300);
+        const horizontalDirection = Phaser.Math.Between(0, 1) ? 1 : -1;
+        const horizontalSpeed = Phaser.Math.Between(50, 150);
+
+        obstacle.setVelocity(horizontalDirection * horizontalSpeed, fallSpeed);
+        obstacle.setAngle(Phaser.Math.Between(0, 360));
+
+        obstacle.checkWorldBounds = true;
+        obstacle.outOfBoundsKill = true;
+    }
+
+    spawnDNA() {
+        if (this.isPaused || this.isGameOver) return;
+
+        const width = this.cameras.main.width;
+        const x = Phaser.Math.Between(50, width - 50);
+
+        const dna = this.dnaItems.create(x, -50, 'dnaCoin');
+        dna.setScale(0.15);
+        dna.setDepth(4);
+        dna.setVelocity(0, Phaser.Math.Between(100, 180));
+        dna.checkWorldBounds = true;
+        dna.outOfBoundsKill = true;
+    }
+
+    collectDNA(player, dna) {
+        if (this.isGameOver || !dna.active) return;
+        dna.destroy();
+        this.dna += 10;
+        this.updateHUD();
+    }
+
+        hitObstacle(player, obstacle) {
+        if (this.isGameOver || this.isPaused || !obstacle.active) return;
+
+        // ✅ DAMAGE -1 HP saja (obstacle langsung hancur, jadi tidak hit 2x)
+        this.playerHP = Math.max(0, this.playerHP - 1);
+        obstacle.destroy();
+        this.updateHUD();
+
+        player.setTint(0xff0000);
+        this.time.delayedCall(200, () => {
+            if (player.active) player.clearTint();
+        });
+
+        if (this.playerHP <= 0) {
+            this.showContinueScreen();
+        }
+    }
+
+       showContinueScreen() {
+        this.isGameOver = true;
+        this.physics.pause();
+        this.spawnEvent.paused = true;
+        this.dnaSpawnEvent.paused = true;
+        this.timerEvent.paused = true;
+
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // ✅ Cek rekor SEBELUM disimpan
+        const isNewRecord = this.survivalTime > this.recordTime;
+        this.saveRecord();
+
+        this.gameOverMenu = this.add.container(0, 0).setDepth(600);
+
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75);
+        this.gameOverMenu.add(overlay);
+
+        const cardRock = this.add.image(width / 2, height / 2, "cardRock");
+        cardRock.setDisplaySize(860, 420);
+        this.gameOverMenu.add(cardRock);
+
+        const title = this.add.text(width / 2, height / 2 - 140, getLang('dodgerGameOver'), {
+            font: "bold 48px Arial",
+            fill: "#ff0000",
+            stroke: "#000000",
+            strokeThickness: 6
+        }).setOrigin(0.5);
+        this.gameOverMenu.add(title);
+
+        const stats = this.add.text(width / 2, height / 2 - 80,
+            `${this.lblTime}: ${this.survivalTime}s   |   DNA: ${this.dna}`, {
+            font: "bold 26px Arial",
+            fill: "#ffffff",
+            stroke: "#000000",
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        this.gameOverMenu.add(stats);
+
+        if (isNewRecord) {
+            const newRec = this.add.text(width / 2, height / 2 - 40, this.lblNewRecord, {
+                font: "bold 28px Arial",
+                fill: "#ffff00",
+                stroke: "#000000",
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            this.gameOverMenu.add(newRec);
+        }
+
+        // ✅ TOMBOL RESUME (pengganti Exit) - SELALU ada, tanpa syarat
+        const resumeBtn = this.add.image(width / 2, height / 2 + 60, "resume-btn");
+        resumeBtn.setDisplaySize(280, 80);
+        resumeBtn.setInteractive({ useHandCursor: true });
+        resumeBtn.on("pointerover", () => resumeBtn.setDisplaySize(300, 86));
+        resumeBtn.on("pointerout", () => resumeBtn.setDisplaySize(280, 80));
+        resumeBtn.on("pointerdown", () => this.doContinue());
+        this.gameOverMenu.add(resumeBtn);
+
+        // Hint kecil cara keluar
+        const hint = this.add.text(width / 2, height / 2 + 120, this.lblQuitHint, {
+            font: "16px Arial",
+            fill: "#aaaaaa",
+            stroke: "#000000",
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        this.gameOverMenu.add(hint);
+    }
+
+    doContinue() {
+        // ✅ HP penuh lagi, TAPI waktu & DNA TIDAK reset (run lanjut terus)
+        this.playerHP = this.maxHP;
+        this.isGameOver = false;
+
+        if (this.gameOverMenu) {
+            this.gameOverMenu.destroy();
+            this.gameOverMenu = null;
+        }
+
+        this.physics.resume();
+        this.spawnEvent.paused = false;
+        this.dnaSpawnEvent.paused = false;
+        this.timerEvent.paused = false;
+
+        this.updateHUD();
+    }
+
+    saveRecord() {
+        if (this.survivalTime > this.recordTime) {
+            this.recordTime = this.survivalTime;
+            localStorage.setItem('dodgerRecordTime', String(this.recordTime));
+        }
     }
 
     createPauseButton() {
@@ -115,121 +408,37 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.exitBtn.on("pointerover", () => this.exitBtn.setDisplaySize(300, 86));
         this.exitBtn.on("pointerout", () => this.exitBtn.setDisplaySize(280, 80));
         this.exitBtn.on("pointerdown", () => {
+            this.saveRecord();   // ✅ Simpan rekor dulu sebelum keluar
             this.scene.start("MenuScene");
         });
         this.pauseMenu.add(this.exitBtn);
     }
 
-    update() {
-        if (this.isPaused) return;
-
-        const speed = 300;
-        let velocityX = 0;
-        let velocityY = 0;
-
-        if (this.cursors.left.isDown || this.keys.left.isDown) {
-            velocityX = -speed;
-        } else if (this.cursors.right.isDown || this.keys.right.isDown) {
-            velocityX = speed;
-        }
-
-        if (this.cursors.up.isDown || this.keys.up.isDown) {
-            velocityY = -speed;
-        } else if (this.cursors.down.isDown || this.keys.down.isDown) {
-            velocityY = speed;
-        }
-
-        this.player.setVelocity(velocityX, velocityY);
-
-        this.difficultyTimer++;
-        if (this.difficultyTimer % 600 === 0) {
-            this.spawnEvent.delay = Math.max(300, this.spawnEvent.delay - 100);
-        }
-    }
-
-    spawnObstacle() {
-        const width = this.cameras.main.width;
-        const x = Phaser.Math.Between(50, width - 50);
-        
-        const randomIndex = Phaser.Math.Between(0, this.bacteriaTypes.length - 1);
-        const bacteriaKey = this.bacteriaTypes[randomIndex];
-        
-        const obstacle = this.obstacles.create(x, -50, bacteriaKey);
-        
-        // ✅ SCALE LEBIH KECIL - Semua bakteri seukuran
-        if (bacteriaKey === 'bakteriBulat') {
-            obstacle.setScale(0.04); // Paling kecil
-        } else if (bacteriaKey === 'bakteriRantai') {
-            obstacle.setScale(0.05);
-        } else if (bacteriaKey === 'bacteriaSpiral') {
-            obstacle.setScale(0.05);
-        } else if (bacteriaKey === 'bacteriaBatang') {
-            obstacle.setScale(0.04);
-        } else {
-            obstacle.setScale(0.8); // bacteria (original hijau) - ukurannya sudah pas
-        }
-        
-        const fallSpeed = Phaser.Math.Between(150, 300);
-        const horizontalDirection = Phaser.Math.Between(0, 1) ? 1 : -1;
-        const horizontalSpeed = Phaser.Math.Between(50, 150);
-        
-        obstacle.setVelocity(horizontalDirection * horizontalSpeed, fallSpeed);
-        obstacle.setAngle(Phaser.Math.Between(0, 360));
-        
-        obstacle.checkWorldBounds = true;
-        obstacle.outOfBoundsKill = true;
-    }
-
-    hitObstacle(player, obstacle) {
-        this.physics.pause();
-        this.spawnEvent.paused = true;
-        player.setTint(0xff0000);
-        
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-
-        // ✅ GAME OVER - TERJEMAHAN
-        this.add.text(width / 2, height / 2 - 50, getLang('dodgerGameOver'), {
-            font: "bold 64px Arial",
-            fill: "#ff0000",
-            stroke: "#000000",
-            strokeThickness: 8
-        }).setOrigin(0.5);
-
-        // ✅ KLIK UNTUK KEMBALI - TERJEMAHAN
-        this.add.text(width / 2, height / 2 + 50, getLang('clickToMenu'), {
-            font: "24px Arial",
-            fill: "#00ff00",
-            stroke: "#000000",
-            strokeThickness: 3
-        }).setOrigin(0.5);
-
-        this.input.once("pointerdown", () => {
-            this.scene.start("MenuScene");
-        });
-    }
-
     togglePause() {
+        if (this.isGameOver) return;
         this.isPaused = !this.isPaused;
 
         if (this.isPaused) {
             this.physics.pause();
             this.spawnEvent.paused = true;
+            this.dnaSpawnEvent.paused = true;
+            this.timerEvent.paused = true;
             this.pauseMenu.setVisible(true);
             this.pauseBtn.setVisible(false);
         } else {
             this.physics.resume();
             this.spawnEvent.paused = false;
+            this.dnaSpawnEvent.paused = false;
+            this.timerEvent.paused = false;
             this.pauseMenu.setVisible(false);
             this.pauseBtn.setVisible(true);
         }
     }
 
-    // ✅ TAMBAHAN 4: Fungsi membuat tombol Fullscreen di tengah atas
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
 
-        const btnX = width / 2;
+        const btnX = width - 180;
         const btnY = 60;
 
         this.fullscreenBtn = this.add.text(btnX, btnY, '⛶', {
@@ -256,12 +465,11 @@ export default class CellDodgerScene extends Phaser.Scene {
         });
 
         this.updateFullscreenButtonIcon();
-        
+
         window.addEventListener('fullscreenchange', () => this.updateFullscreenButtonIcon());
         window.addEventListener('webkitfullscreenchange', () => this.updateFullscreenButtonIcon());
     }
 
-    // ✅ TAMBAHAN 5: Fungsi update icon tombol
     updateFullscreenButtonIcon() {
         if (!this.fullscreenBtn) return;
         const isFullscreen = fullscreenManager.getStatus();
@@ -274,7 +482,7 @@ export default class CellDodgerScene extends Phaser.Scene {
                 backgroundColor: '#330000'
             });
         } else {
-            this.fullscreenBtn.setText('⛶');
+            this.fullscreenBtn.setText('⛶'); // ✅ DIPERBAIKI (dulu '')
             this.fullscreenBtn.setStyle({
                 fill: '#00ff00',
                 stroke: '#00cc00',

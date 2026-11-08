@@ -28,7 +28,12 @@ export default class VirusGame2 extends Phaser.Scene {
         this.lastBossHitTime = 0;
     }
 
-    create() {
+    create(data) {
+        // ✅ STOP MAIN MENU MUSIC
+        const mainMenuMusic = this.sound.get('mainMenuMusic');
+        if (mainMenuMusic) {
+            mainMenuMusic.stop();
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         

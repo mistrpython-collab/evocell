@@ -107,7 +107,7 @@ export default class ModeSelectScene extends Phaser.Scene {
                 
                 if (modeTitle.includes("3")) {
                     internalMission = "Misi 3";
-                    gameScene = 'CellDodgerScene';
+                     gameScene = 'CellDodgerScene';
                 } else if (modeTitle.includes("2")) {
                     internalMission = "Misi 2";
                 }

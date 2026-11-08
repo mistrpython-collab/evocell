@@ -2,6 +2,10 @@
 import { fullscreenManager } from '../utils/fullscreen.js';
 import { getCurrentLang, createLanguageSwitch } from '../utils/translations.js';
 
+// ✅ VARIABEL GLOBAL MUSIK
+let isMusicOn = localStorage.getItem('evocell_music') !== 'false';
+let bgmInstance = null;
+
 export default class MenuScene extends Phaser.Scene {
     constructor() {
         super('MenuScene');
@@ -9,6 +13,7 @@ export default class MenuScene extends Phaser.Scene {
         this.roles = ['prokaryotic', 'virus', 'wbc'];
         this.fullscreenBtn = null;
         this.guideBtn = null;
+        this.musicToggleBtn = null;
         
         // ✅ NAMA KARAKTER - Indonesia & Inggris
         this.roleNamesID = ['Prokariotik', 'Virus', 'Sel Darah Putih'];
@@ -21,12 +26,10 @@ export default class MenuScene extends Phaser.Scene {
         
         // ✅ CEK BAHASA SAAT INI
         const lang = getCurrentLang();
-        
-        // Set nama karakter sesuai bahasa
         const roleNames = lang === 'id' ? this.roleNamesID : this.roleNamesEN;
 
         this.add.image(width/2, height/2, 'bgMain');
-        const logo = this.add.image(width/2, height/4-30, 'logo');
+        const logo = this.add.image(width/2, height/4 - 30, 'logo');
         logo.setScale(0.3);
 
         // Teks nama karakter
@@ -35,27 +38,28 @@ export default class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Sprite karakter
-        this.characterSprite = this.add.sprite(width/2, height/2+60, this.roles[this.selectedRole]);
+        this.characterSprite = this.add.sprite(width/2, height/2 + 60, this.roles[this.selectedRole]);
         this.characterSprite.setScale(6);
 
         // Panah kiri
-        const arrowLeft = this.add.text(width/2-180, height/2+80, '<', { font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5);
-        arrowLeft.setInteractive({ useHandCursor: true });
+        const arrowLeft = this.add.text(width/2 - 180, height/2 + 80, '<', { 
+            font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         arrowLeft.on('pointerdown', () => this.changeRole(-1));
         arrowLeft.on('pointerover', () => arrowLeft.setScale(1.2));
         arrowLeft.on('pointerout', () => arrowLeft.setScale(1));
 
         // Panah kanan
-        const arrowRight = this.add.text(width/2+180, height/2+80, '>', { font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5);
-        arrowRight.setInteractive({ useHandCursor: true });
+        const arrowRight = this.add.text(width/2 + 180, height/2 + 80, '>', { 
+            font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         arrowRight.on('pointerdown', () => this.changeRole(1));
         arrowRight.on('pointerover', () => arrowRight.setScale(1.2));
         arrowRight.on('pointerout', () => arrowRight.setScale(1));
 
         // Tombol Campaign
-        const campaignBtn = this.add.image(width/2, height-120, 'btnCampaign');
-        campaignBtn.setScale(0.43);
-        campaignBtn.setInteractive({ useHandCursor: true });
+        const campaignBtn = this.add.image(width/2, height - 120, 'btnCampaign');
+        campaignBtn.setScale(0.43).setInteractive({ useHandCursor: true });
         campaignBtn.on('pointerover', () => campaignBtn.setScale(0.45));
         campaignBtn.on('pointerout', () => campaignBtn.setScale(0.43));
         campaignBtn.on('pointerdown', () => {
@@ -65,26 +69,69 @@ export default class MenuScene extends Phaser.Scene {
         // Tombol Device Mode
         const deviceModeText = lang === 'id' ? 'Mode Perangkat' : 'Device Mode';
         const deviceModeBtn = this.add.text(60, 60, '⚙️ ' + deviceModeText, {
-            font: 'bold 24px Arial', fill: '#00ff00', stroke: '#00cc00', strokeThickness: 3, backgroundColor: '#001a00', padding: { x: 20, y: 12 }
-        }).setOrigin(0, 0.5);
-        deviceModeBtn.setInteractive({ useHandCursor: true });
+            font: 'bold 24px Arial', fill: '#00ff00', stroke: '#00cc00', strokeThickness: 3, 
+            backgroundColor: '#001a00', padding: { x: 20, y: 12 }
+        }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
         deviceModeBtn.on('pointerover', () => deviceModeBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' }));
         deviceModeBtn.on('pointerout', () => deviceModeBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' }));
         deviceModeBtn.on('pointerdown', () => this.scene.start('DeviceModeScene'));
 
-        // ✅ PAKAI TOGGLE DARI translations.js (posisi 120, 150)
+        // ✅ PAKAI TOGGLE DARI translations.js
         createLanguageSwitch(this, 120, 150);
 
         // Tombol Fullscreen
         this.createFullscreenButton(width, height);
         
-        // ✅ TOMBOL PANDUAN LANGSUNG (tanpa popup)
+        // ✅ TOMBOL PANDUAN LANGSUNG
         this.createGuideButton(width, height);
+
+        // ==========================================
+        // ✅ SETUP BACKGROUND MUSIC & TOGGLE BUTTON
+        // ==========================================
+        if (!bgmInstance) {
+            bgmInstance = this.sound.add('mainMenuMusic', { loop: true, volume: 0.5 });
+        }
+
+        if (isMusicOn && !bgmInstance.isPlaying) {
+            bgmInstance.play();
+        } else if (!isMusicOn) {
+            bgmInstance.pause();
+        }
+
+        // Tombol Toggle Musik (Pojok Kanan Bawah)
+        this.musicToggleBtn = this.add.text(50, height - 50, isMusicOn ? '🔊' : '🔇', { 
+            fontSize: '48px' 
+        })
+        .setOrigin(0.5)
+        .setDepth(1000)
+        .setInteractive({ useHandCursor: true });
+
+        this.musicToggleBtn.on('pointerdown', () => {
+            isMusicOn = !isMusicOn;
+            this.musicToggleBtn.setText(isMusicOn ? '🔊' : '🔇');
+            
+            if (isMusicOn) {
+                if (!bgmInstance.isPlaying) bgmInstance.play();
+                else bgmInstance.resume();
+            } else {
+                bgmInstance.pause();
+            }
+            localStorage.setItem('evocell_music', isMusicOn.toString());
+        });
+
+        this.musicToggleBtn.on('pointerover', () => this.musicToggleBtn.setScale(1.2));
+        this.musicToggleBtn.on('pointerout', () => this.musicToggleBtn.setScale(1));
+
+        // ✅ FALLBACK: Unlock audio saat user klik pertama kali (browser policy)
+        this.input.once('pointerdown', () => {
+            if (bgmInstance && !bgmInstance.isPlaying && isMusicOn) {
+                bgmInstance.play();
+            }
+        });
     }
 
     // ✅ TOMBOL PANDUAN - LANGSUNG BUKA PDF SESUAI BAHASA AKTIF
     createGuideButton(width, height) {
-        // Posisi di bawah tombol fullscreen (pojok kanan atas)
         const guideBtn = this.add.text(width / 2 + 500, height - 60, '📖 Panduan/Guides', {
             font: 'bold 20px Arial',
             fill: '#ffff00',
@@ -105,7 +152,6 @@ export default class MenuScene extends Phaser.Scene {
         });
 
         guideBtn.on('pointerdown', () => {
-            // ✅ LANGSUNG buka PDF sesuai bahasa yang sedang aktif
             const currentLang = getCurrentLang();
             if (window.openGuide) {
                 window.openGuide(currentLang);
@@ -162,5 +208,14 @@ export default class MenuScene extends Phaser.Scene {
             yoyo: true, 
             ease: 'Back.easeOut' 
         });
+    }
+
+    // ✅ SHUTDOWN: Bersihkan musik saat keluar dari scene agar tidak double
+    shutdown() {
+        if (bgmInstance) {
+            bgmInstance.stop();
+            bgmInstance.destroy();
+            bgmInstance = null;
+        }
     }
 }

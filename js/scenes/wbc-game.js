@@ -4,6 +4,10 @@ import DualJoystickManager from '../utils/dualjoystick.js'; // ✅ TAMBAH INI
 import { getLang } from '../utils/translations.js'; // ✅ TAMBAH INI
 import { DeviceMode } from '../utils/devicemanager.js'; // ✅ TAMBAH INI
 
+// wbc-game.js - Bagian paling atas sebelum export default class WBCCGame
+let wbcBgm = null; // Instance Background Music khusus WBC
+let isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false'; // Default ON
+
 export default class WBCGame extends Phaser.Scene {
     constructor() {
         super('WBCGame');
@@ -26,7 +30,12 @@ export default class WBCGame extends Phaser.Scene {
         this.mouseY = 0;
     }
 
-    create() {
+    create(data) {
+        // ✅ STOP MAIN MENU MUSIC
+        const mainMenuMusic = this.sound.get('mainMenuMusic');
+        if (mainMenuMusic) {
+            mainMenuMusic.stop();
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         

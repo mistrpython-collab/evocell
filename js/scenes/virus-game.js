@@ -19,7 +19,12 @@ export default class VirusGame extends Phaser.Scene {
         this.DAMAGE_PER_TICK = 1;
     }
 
-    create() {
+    create(data) {
+        // ✅ STOP MAIN MENU MUSIC
+        const mainMenuMusic = this.sound.get('mainMenuMusic');
+        if (mainMenuMusic) {
+            mainMenuMusic.stop();
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
