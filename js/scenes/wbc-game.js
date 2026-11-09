@@ -1,11 +1,8 @@
-// wbc-game.js - White Blood Cell Game
+// wbc-game.js - White Blood Cell Game (NO MUSIC VERSION)
 import { fullscreenManager } from '../utils/fullscreen.js';
 import DualJoystickManager from '../utils/dualjoystick.js';
 import { getLang } from '../utils/translations.js';
 import { DeviceMode } from '../utils/devicemanager.js';
-
-// ✅ HANYA status mute yang global (disimpan di localStorage)
-let isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false';
 
 export default class WBCGame extends Phaser.Scene {
     constructor() {
@@ -18,7 +15,8 @@ export default class WBCGame extends Phaser.Scene {
         this.mode = data.mode || 'game';
         this.mission = data.mission || 'Misi 1';
         
-        this.WIN_SCORE = 10000;
+        // Konfigurasi Gameplay
+        this.WIN_SCORE = 10000; // Disesuaikan sesuai memori user (Target skor 10.000)
         this.ENEMY_SPAWN_DELAY = 700;
         this.WEAKEN_DURATION = 6000;
         this.DAMAGE_INVULNERABILITY = 500;
@@ -27,16 +25,20 @@ export default class WBCGame extends Phaser.Scene {
         
         this.mouseX = 0;
         this.mouseY = 0;
-        this.wbcBgm = null;
     }
 
     create(data) {
-        // ✅ Stop musik menu TANPA destroy (aman)
-        try { this.sound.stopByKey('mainMenuMusic'); } catch (e) {}
+        // ✅ STOP MUSIK MENU SAAT MASUK GAME (Agar tidak tumpang tindih)
+        try { 
+            if (this.sound.get('mainMenuMusic')) {
+                this.sound.stopByKey('mainMenuMusic'); 
+            }
+        } catch (e) {}
 
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
+        // Background
         try {
             const bg = this.add.image(width/2, height/2, 'bgVirus');
             bg.setDepth(0);
@@ -45,6 +47,7 @@ export default class WBCGame extends Phaser.Scene {
             this.add.rectangle(width/2, height/2, width, height, 0x660000).setDepth(0);
         }
         
+        // Inisialisasi Objek Game
         this.player = null;
         this.enemies = this.add.group();
         this.bullets = this.add.group();
@@ -54,24 +57,10 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         this.lastDamageTime = 0;
-        this.wbcMusicToggleBtn = null;
         this.laptopShootEvent = null;
         this.joystickManager = null;
         
-        // ✅ Setup musik WBC - aman, tanpa destroy manual
-        try {
-            this.sound.removeByKey('wbcMusic');
-            if (this.cache.audio.exists('wbcMusic')) {
-                this.wbcBgm = this.sound.add('wbcMusic', { loop: true, volume: 0.6 });
-                if (isWbcMusicOn) {
-                    this.wbcBgm.play();
-                }
-            }
-        } catch (e) {
-            this.wbcBgm = null;
-        }
-        
-        // ✅ Texture peluru HANYA dibuat jika BELUM ada
+        // Generate Texture Peluru Antibodi (Jika belum ada)
         if (!this.textures.exists('antibodyBulletTex')) {
             const bulletGraphics = this.add.graphics();
             bulletGraphics.lineStyle(4, 0xFFFF00, 1);
@@ -94,6 +83,7 @@ export default class WBCGame extends Phaser.Scene {
         
         this.laserGraphics = this.add.graphics().setDepth(4);
         
+        // UI Texts
         this.add.text(30, 30, getLang('wbcTitle'), {
             font: 'bold 28px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
@@ -106,8 +96,10 @@ export default class WBCGame extends Phaser.Scene {
             font: 'bold 24px Arial', fill: '#00FF00', stroke: '#000000', strokeThickness: 4
         }).setDepth(10);
         
+        // Create Player
         this.player = new WBCPlayer(this, width/2, height/2);
         
+        // Input Handling
         this.input.maxPointers = 10;
 
         this.input.on('pointermove', (pointer) => {
@@ -133,6 +125,7 @@ export default class WBCGame extends Phaser.Scene {
         this.arrows = this.input.keyboard.createCursorKeys();
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         
+        // Spawner Enemy Loop
         this.time.addEvent({
             delay: this.ENEMY_SPAWN_DELAY,
             callback: this.spawnEnemy,
@@ -140,9 +133,11 @@ export default class WBCGame extends Phaser.Scene {
             loop: true
         });
         
+        // Physics Collisions
         this.physics.add.overlap(this.player, this.enemies, this.handleEat, null, this);
         this.physics.add.overlap(this.bullets, this.enemies, this.handleBulletHit, null, this);
         
+        // Pause Button
         const pauseBtnSize = 150;
         const pauseBtnMargin = 50;
         this.pauseButton = this.add.image(width - pauseBtnMargin, 110, 'pause-btn');
@@ -153,6 +148,7 @@ export default class WBCGame extends Phaser.Scene {
         this.pauseButton.on('pointerout', () => this.pauseButton.setDisplaySize(pauseBtnSize, pauseBtnSize));
         this.pauseButton.on('pointerdown', () => this.togglePause());
 
+        // Device Mode Setup
         this.deviceMode = DeviceMode.getMode();
         this.isMobileMode = DeviceMode.isMobile();
         this.isLaptopMode = DeviceMode.isLaptop();
@@ -167,13 +163,14 @@ export default class WBCGame extends Phaser.Scene {
             this.setupLaptopAutoShoot();
         }
         
+        // Mission Intro Text
         const missionText = this.add.text(width/2, height/2, getLang('wbcMissionText'), {
             font: 'bold 48px Arial', fill: '#FFFF00', stroke: '#000000', strokeThickness: 6, align: 'center'
         }).setOrigin(0.5).setDepth(20);
         this.time.delayedCall(3000, () => missionText.destroy());
  
         this.createFullscreenButton(width, height);
-        this.createGlobalMusicButton(width, height);
+        // NOTE: createGlobalMusicButton DIHAPUS SESUAI PERMINTAAN
     }
 
     update() {
@@ -191,6 +188,7 @@ export default class WBCGame extends Phaser.Scene {
             this.joystickManager.update(this.time.now);
         }
         
+        // Movement Logic
         if (this.isMobileMode && this.joystickManager?.leftJoystick?.isActive) {
             const joy = this.joystickManager.leftJoystick;
             const speed = this.player.baseSpeed;
@@ -207,6 +205,7 @@ export default class WBCGame extends Phaser.Scene {
             this.player.updateMovement(this.wasd, this.arrows);
         }
         
+        // Aim Logic
         if (this.isMobileMode && this.joystickManager?.rightJoystick?.isActive) {
             const aimJoy = this.joystickManager.rightJoystick;
             this.mouseX = this.player.x + Math.cos(aimJoy.outputAngle) * 100;
@@ -259,6 +258,7 @@ export default class WBCGame extends Phaser.Scene {
         
         if (enemy.isWeakened) return;
         
+        // Shield Break Mechanic
         if (enemy.hasShield) {
             enemy.removeShield();
             enemy.weaken();
@@ -266,6 +266,7 @@ export default class WBCGame extends Phaser.Scene {
             return;
         }
         
+        // Instakill Roll (35%)
         const roll = Phaser.Math.Between(1, 100);
         if (roll <= this.INSTAKILL_CHANCE) {
             enemy.destroy();
@@ -276,6 +277,7 @@ export default class WBCGame extends Phaser.Scene {
             return;
         }
         
+        // Weaken Mechanic
         enemy.weaken();
         bullet.destroy();
     }
@@ -286,6 +288,7 @@ export default class WBCGame extends Phaser.Scene {
         const now = Date.now();
         if (now - this.lastDamageTime < this.DAMAGE_INVULNERABILITY) return;
         
+        // Damage Taken
         if (!enemy.isWeakened) {
             this.lastDamageTime = now;
             this.player.takeDamage(1);
@@ -299,6 +302,7 @@ export default class WBCGame extends Phaser.Scene {
             return;
         }
         
+        // Eat & Score
         const points = enemy.wasShielded ? 50 : Phaser.Math.Between(30, 250);
         this.score += points;
         this.scoreText.setText(`${getLang('score')}: ${this.score} / ${this.WIN_SCORE}`);
@@ -314,24 +318,21 @@ export default class WBCGame extends Phaser.Scene {
         this.isPaused = !this.isPaused;
         
         if (this.isPaused) {
+            // Freeze Entities
             if (this.player?.body) this.player.body.setVelocity(0, 0);
             this.enemies.children.iterate((e) => { if (e && e.body) e.body.setVelocity(0, 0); });
             this.bullets.children.iterate((b) => { if (b && b.body) b.body.setVelocity(0, 0); });
             
-            try { if (this.wbcBgm && this.wbcBgm.isPlaying) this.wbcBgm.pause(); } catch (e) {}
-            
             this.showPauseMenu();
             
+            // Cleanup Inputs
             if (this.joystickManager) {
                 if (this.joystickManager.leftJoystick) this.joystickManager.leftJoystick.destroy();
                 if (this.joystickManager.rightJoystick) this.joystickManager.rightJoystick.destroy();
             }
             if (this.laptopShootEvent) this.laptopShootEvent.paused = true;
         } else {
-            try {
-                if (this.wbcBgm && isWbcMusicOn && !this.wbcBgm.isPlaying) this.wbcBgm.resume();
-            } catch (e) {}
-            
+            // Resume Inputs
             if (this.isMobileMode) this.joystickManager = new DualJoystickManager(this);
             if (this.laptopShootEvent) this.laptopShootEvent.paused = false;
             
@@ -495,54 +496,7 @@ export default class WBCGame extends Phaser.Scene {
     }
 
     shutdown() {
-        try {
-            this.sound.stopByKey('wbcMusic');
-            this.sound.removeByKey('wbcMusic');
-        } catch (e) {}
-        this.wbcBgm = null;
-        isWbcMusicOn = localStorage.getItem('evocell_wbc_music') !== 'false';
-    }
-
-    // ✅ TOMBOL SPEAKER - KIRI ATAS, TEPAT DI BAWAH "HP: 500/500"
-    createGlobalMusicButton(width, height) {
-        const posX = 30;    // sejajar kiri dengan teks HP
-        const posY = 105;   // tepat di bawah HP (HP di y=70)
-
-        this.wbcMusicToggleBtn = this.add.text(posX, posY, isWbcMusicOn ? '🔊' : '🔇', {
-            font: 'bold 32px Arial',
-            fill: '#00FF00',
-            stroke: '#000000',
-            strokeThickness: 3
-        })
-        .setOrigin(0, 0)
-        .setDepth(1000)
-        .setInteractive({ useHandCursor: true });
-
-        this.wbcMusicToggleBtn.on('pointerdown', () => {
-            isWbcMusicOn = !isWbcMusicOn;
-            if (this.wbcMusicToggleBtn) {
-                this.wbcMusicToggleBtn.setText(isWbcMusicOn ? '🔊' : '🔇');
-            }
-            
-            try {
-                if (this.wbcBgm) {
-                    if (isWbcMusicOn) {
-                        if (!this.wbcBgm.isPlaying) this.wbcBgm.resume();
-                    } else {
-                        this.wbcBgm.pause();
-                    }
-                }
-            } catch (e) {}
-            
-            localStorage.setItem('evocell_wbc_music', isWbcMusicOn.toString());
-        });
-
-        this.wbcMusicToggleBtn.on('pointerover', () => {
-            if (this.wbcMusicToggleBtn) this.wbcMusicToggleBtn.setScale(1.2);
-        });
-        this.wbcMusicToggleBtn.on('pointerout', () => {
-            if (this.wbcMusicToggleBtn) this.wbcMusicToggleBtn.setScale(1);
-        });
+        // Tidak ada cleanup audio karena sudah dihapus total
     }
 }
 

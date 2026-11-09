@@ -20,28 +20,66 @@ export default class MenuScene extends Phaser.Scene {
         this.roleNamesEN = ['Prokaryotic', 'Virus', 'White Blood Cell'];
     }
 
+    preload() {
+        this.load.spritesheet('prokaryoticAnim', 'assets/images/main-menu-evocell/prokariotikhighres.png', {
+            frameWidth: 670,
+            frameHeight: 680
+        });
+        this.load.spritesheet('virusAnim', 'assets/images/main-menu-evocell/virushighres.png', {
+            frameWidth: 287,
+            frameHeight: 257
+        });
+        this.load.spritesheet('wbcAnim', 'assets/images/main-menu-evocell/wbchighres.png', {
+            frameWidth: 272,
+            frameHeight: 263
+        });
+    }
+
     create() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // ✅ CEK BAHASA SAAT INI
         const lang = getCurrentLang();
         const roleNames = lang === 'id' ? this.roleNamesID : this.roleNamesEN;
+
+        if (!this.anims.exists('prokaryoticIdle')) {
+            this.anims.create({
+                key: 'prokaryoticIdle',
+                frames: this.anims.generateFrameNumbers('prokaryoticAnim', { start: 0, end: 1 }),
+                frameRate: 2,
+                repeat: -1
+            });
+        }
+        if (!this.anims.exists('virusIdle')) {
+            this.anims.create({
+                key: 'virusIdle',
+                frames: this.anims.generateFrameNumbers('virusAnim', { start: 0, end: 1 }),
+                frameRate: 2,
+                repeat: -1
+            });
+        }
+        if (!this.anims.exists('wbcIdle')) {
+            this.anims.create({
+                key: 'wbcIdle',
+                frames: this.anims.generateFrameNumbers('wbcAnim', { start: 0, end: 1 }),
+                frameRate: 2,
+                repeat: -1
+            });
+        }
 
         this.add.image(width/2, height/2, 'bgMain');
         const logo = this.add.image(width/2, height/4 - 30, 'logo');
         logo.setScale(0.3);
 
-        // Teks nama karakter
         this.roleText = this.add.text(width/2, 290, roleNames[this.selectedRole], {
             font: '28px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        // Sprite karakter
         this.characterSprite = this.add.sprite(width/2, height/2 + 60, this.roles[this.selectedRole]);
         this.characterSprite.setScale(6);
+        
+        this.updateCharacterSprite();
 
-        // Panah kiri
         const arrowLeft = this.add.text(width/2 - 180, height/2 + 80, '<', { 
             font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -49,7 +87,6 @@ export default class MenuScene extends Phaser.Scene {
         arrowLeft.on('pointerover', () => arrowLeft.setScale(1.2));
         arrowLeft.on('pointerout', () => arrowLeft.setScale(1));
 
-        // Panah kanan
         const arrowRight = this.add.text(width/2 + 180, height/2 + 80, '>', { 
             font: 'bold 64px Arial', fill: '#ffffff', stroke: '#000000', strokeThickness: 5 
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -57,7 +94,6 @@ export default class MenuScene extends Phaser.Scene {
         arrowRight.on('pointerover', () => arrowRight.setScale(1.2));
         arrowRight.on('pointerout', () => arrowRight.setScale(1));
 
-        // Tombol Campaign
         const campaignBtn = this.add.image(width/2, height - 120, 'btnCampaign');
         campaignBtn.setScale(0.43).setInteractive({ useHandCursor: true });
         campaignBtn.on('pointerover', () => campaignBtn.setScale(0.45));
@@ -66,7 +102,6 @@ export default class MenuScene extends Phaser.Scene {
             this.scene.start('ModeSelectScene', { role: this.roles[this.selectedRole] });
         });
 
-        // Tombol Device Mode
         const deviceModeText = lang === 'id' ? 'Mode Perangkat' : 'Device Mode';
         const deviceModeBtn = this.add.text(60, 60, '⚙️ ' + deviceModeText, {
             font: 'bold 24px Arial', fill: '#00ff00', stroke: '#00cc00', strokeThickness: 3, 
@@ -76,29 +111,29 @@ export default class MenuScene extends Phaser.Scene {
         deviceModeBtn.on('pointerout', () => deviceModeBtn.setStyle({ fill: '#00ff00', backgroundColor: '#001a00' }));
         deviceModeBtn.on('pointerdown', () => this.scene.start('DeviceModeScene'));
 
-        // ✅ PAKAI TOGGLE DARI translations.js
         createLanguageSwitch(this, 120, 150);
-
-        // Tombol Fullscreen
         this.createFullscreenButton(width, height);
-        
-        // ✅ TOMBOL PANDUAN LANGSUNG
         this.createGuideButton(width, height);
 
         // ==========================================
-        // ✅ SETUP BACKGROUND MUSIC & TOGGLE BUTTON
+        // ✅ PERBAIKAN CRITICAL: SETUP MUSIK & TOGGLE
         // ==========================================
-        if (!bgmInstance) {
+        
+        // 1. Bersihkan instance lama jika ada sisa error dari scene sebelumnya
+        if (bgmInstance) {
+            bgmInstance.destroy();
+            bgmInstance = null;
+        }
+
+        // 2. Buat instance baru dengan aman (cek cache dulu)
+        if (this.cache.audio.exists('mainMenuMusic')) {
             bgmInstance = this.sound.add('mainMenuMusic', { loop: true, volume: 0.5 });
+            if (isMusicOn) {
+                bgmInstance.play();
+            }
         }
 
-        if (isMusicOn && !bgmInstance.isPlaying) {
-            bgmInstance.play();
-        } else if (!isMusicOn) {
-            bgmInstance.pause();
-        }
-
-        // Tombol Toggle Musik (Pojok Kanan Bawah)
+        // 3. Tombol Toggle (DIPERBAIKI: icon awal '🔇' bukan '')
         this.musicToggleBtn = this.add.text(50, height - 50, isMusicOn ? '🔊' : '🔇', { 
             fontSize: '48px' 
         })
@@ -110,11 +145,14 @@ export default class MenuScene extends Phaser.Scene {
             isMusicOn = !isMusicOn;
             this.musicToggleBtn.setText(isMusicOn ? '🔊' : '🔇');
             
-            if (isMusicOn) {
-                if (!bgmInstance.isPlaying) bgmInstance.play();
-                else bgmInstance.resume();
-            } else {
-                bgmInstance.pause();
+            // ✅ CEK NULL SEBELUM AKSES PROPETI
+            if (bgmInstance) {
+                if (isMusicOn) {
+                    if (!bgmInstance.isPlaying) bgmInstance.play();
+                    else bgmInstance.resume();
+                } else {
+                    bgmInstance.pause();
+                }
             }
             localStorage.setItem('evocell_music', isMusicOn.toString());
         });
@@ -122,7 +160,7 @@ export default class MenuScene extends Phaser.Scene {
         this.musicToggleBtn.on('pointerover', () => this.musicToggleBtn.setScale(1.2));
         this.musicToggleBtn.on('pointerout', () => this.musicToggleBtn.setScale(1));
 
-        // ✅ FALLBACK: Unlock audio saat user klik pertama kali (browser policy)
+        // ✅ FALLBACK: Unlock audio
         this.input.once('pointerdown', () => {
             if (bgmInstance && !bgmInstance.isPlaying && isMusicOn) {
                 bgmInstance.play();
@@ -130,46 +168,51 @@ export default class MenuScene extends Phaser.Scene {
         });
     }
 
-    // ✅ TOMBOL PANDUAN - LANGSUNG BUKA PDF SESUAI BAHASA AKTIF
+    updateCharacterSprite() {
+        const role = this.roles[this.selectedRole];
+        if (role === 'prokaryotic') {
+            this.characterSprite.setTexture('prokaryoticAnim');
+            this.characterSprite.setScale(0.35);
+            this.characterSprite.setOrigin(0.5, 0.5);
+            this.characterSprite.play('prokaryoticIdle');
+        } else if (role === 'virus') {
+            this.characterSprite.setTexture('virusAnim');
+            this.characterSprite.setScale(0.9);
+            this.characterSprite.setOrigin(0.5, 0.5);
+            this.characterSprite.play('virusIdle');
+        } else if (role === 'wbc') {
+            this.characterSprite.setTexture('wbcAnim');
+            this.characterSprite.setScale(0.85);
+            this.characterSprite.setOrigin(0.5, 0.5);
+            this.characterSprite.play('wbcIdle');
+        } else {
+            this.characterSprite.stop();
+            this.characterSprite.setTexture(role);
+            this.characterSprite.setScale(6);
+            this.characterSprite.setOrigin(0.5, 0.5);
+        }
+    }
+
     createGuideButton(width, height) {
         const guideBtn = this.add.text(width / 2 + 500, height - 60, '📖 Panduan/Guides', {
-            font: 'bold 20px Arial',
-            fill: '#ffff00',
-            stroke: '#000000',
-            strokeThickness: 3,
-            backgroundColor: '#333300',
-            padding: { x: 15, y: 10 }
+            font: 'bold 20px Arial', fill: '#ffff00', stroke: '#000000', strokeThickness: 3,
+            backgroundColor: '#333300', padding: { x: 15, y: 10 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        guideBtn.on('pointerover', () => {
-            guideBtn.setStyle({ fill: '#ffffff', backgroundColor: '#555500' });
-            guideBtn.setScale(1.05);
-        });
-
-        guideBtn.on('pointerout', () => {
-            guideBtn.setStyle({ fill: '#ffff00', backgroundColor: '#333300' });
-            guideBtn.setScale(1);
-        });
-
+        guideBtn.on('pointerover', () => { guideBtn.setStyle({ fill: '#ffffff', backgroundColor: '#555500' }); guideBtn.setScale(1.05); });
+        guideBtn.on('pointerout', () => { guideBtn.setStyle({ fill: '#ffff00', backgroundColor: '#333300' }); guideBtn.setScale(1); });
         guideBtn.on('pointerdown', () => {
             const currentLang = getCurrentLang();
-            if (window.openGuide) {
-                window.openGuide(currentLang);
-            }
+            if (window.openGuide) window.openGuide(currentLang);
         });
-        
         this.guideBtn = guideBtn;
     }
 
     createFullscreenButton(width, height) {
         if (!fullscreenManager.supportsFullscreen) return;
         this.fullscreenBtn = this.add.text(width - 60, 60, '', { 
-            font: 'bold 28px Arial', 
-            fill: '#00ff00', 
-            stroke: '#00cc00', 
-            strokeThickness: 3, 
-            backgroundColor: '#001a00', 
-            padding: { x: 12, y: 8 } 
+            font: 'bold 28px Arial', fill: '#00ff00', stroke: '#00cc00', strokeThickness: 3, 
+            backgroundColor: '#001a00', padding: { x: 12, y: 8 } 
         });
         this.fullscreenBtn.setOrigin(0.5).setDepth(1000).setInteractive({ useHandCursor: true });
         this.fullscreenBtn.on('pointerover', () => this.fullscreenBtn.setStyle({ fill: '#aaffaa', backgroundColor: '#003300' }));
@@ -198,24 +241,23 @@ export default class MenuScene extends Phaser.Scene {
         this.selectedRole += direction;
         if (this.selectedRole < 0) this.selectedRole = this.roles.length - 1;
         if (this.selectedRole >= this.roles.length) this.selectedRole = 0;
-        this.characterSprite.setTexture(this.roles[this.selectedRole]);
+        
+        this.updateCharacterSprite();
         this.roleText.setText(roleNames[this.selectedRole]);
+        
+        const s = this.characterSprite.scaleX;
         this.tweens.add({ 
-            targets: this.characterSprite, 
-            scaleX: 3.3, 
-            scaleY: 3.3, 
-            duration: 100, 
-            yoyo: true, 
-            ease: 'Back.easeOut' 
+            targets: this.characterSprite, scaleX: s * 0.85, scaleY: s * 0.85, 
+            duration: 100, yoyo: true, ease: 'Back.easeOut' 
         });
     }
 
-    // ✅ SHUTDOWN: Bersihkan musik saat keluar dari scene agar tidak double
+    // ✅ SHUTDOWN: Bersihkan musik secara total agar tidak double/error
     shutdown() {
         if (bgmInstance) {
             bgmInstance.stop();
             bgmInstance.destroy();
-            bgmInstance = null;
+            bgmInstance = null; // Reset ke null
         }
     }
 }
