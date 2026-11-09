@@ -116,24 +116,18 @@ export default class MenuScene extends Phaser.Scene {
         this.createGuideButton(width, height);
 
         // ==========================================
-        // ✅ PERBAIKAN CRITICAL: SETUP MUSIK & TOGGLE
+        // ✅ SETUP MUSIK - TIDAK DIHENTIKAN SAAT NAVIGASI MENU
         // ==========================================
         
-        // 1. Bersihkan instance lama jika ada sisa error dari scene sebelumnya
-        if (bgmInstance) {
-            bgmInstance.destroy();
-            bgmInstance = null;
-        }
-
-        // 2. Buat instance baru dengan aman (cek cache dulu)
-        if (this.cache.audio.exists('mainMenuMusic')) {
+        // Buat instance musik hanya jika belum ada
+        if (!bgmInstance && this.cache.audio.exists('mainMenuMusic')) {
             bgmInstance = this.sound.add('mainMenuMusic', { loop: true, volume: 0.5 });
             if (isMusicOn) {
                 bgmInstance.play();
             }
         }
 
-        // 3. Tombol Toggle (DIPERBAIKI: icon awal '🔇' bukan '')
+        // Tombol Toggle Musik
         this.musicToggleBtn = this.add.text(50, height - 50, isMusicOn ? '🔊' : '🔇', { 
             fontSize: '48px' 
         })
@@ -145,7 +139,6 @@ export default class MenuScene extends Phaser.Scene {
             isMusicOn = !isMusicOn;
             this.musicToggleBtn.setText(isMusicOn ? '🔊' : '🔇');
             
-            // ✅ CEK NULL SEBELUM AKSES PROPETI
             if (bgmInstance) {
                 if (isMusicOn) {
                     if (!bgmInstance.isPlaying) bgmInstance.play();
@@ -160,7 +153,7 @@ export default class MenuScene extends Phaser.Scene {
         this.musicToggleBtn.on('pointerover', () => this.musicToggleBtn.setScale(1.2));
         this.musicToggleBtn.on('pointerout', () => this.musicToggleBtn.setScale(1));
 
-        // ✅ FALLBACK: Unlock audio
+        // Fallback: Unlock audio
         this.input.once('pointerdown', () => {
             if (bgmInstance && !bgmInstance.isPlaying && isMusicOn) {
                 bgmInstance.play();
@@ -252,12 +245,11 @@ export default class MenuScene extends Phaser.Scene {
         });
     }
 
-    // ✅ SHUTDOWN: Bersihkan musik secara total agar tidak double/error
+    // ✅ SHUTDOWN: JANGAN HENTIKAN MUSIK - biarkan terus berputar saat navigasi menu
     shutdown() {
-        if (bgmInstance) {
-            bgmInstance.stop();
-            bgmInstance.destroy();
-            bgmInstance = null; // Reset ke null
-        }
+        // Musik TIDAK dihentikan di sini agar tetap looping saat:
+        // MenuScene → DeviceModeScene → kembali ke MenuScene
+        // Musik hanya berhenti saat masuk scene game (WBCGame, VirusGame, dll)
+        // yang sudah ada kode this.sound.stopByKey('mainMenuMusic') di create() mereka
     }
 }
