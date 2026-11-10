@@ -9,24 +9,24 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     init(data) {
-        // ✅ KONFIGURASI ENDLESS MODE (nama variabel KONSISTEN: maxHP)
+        // ✅ KONFIGURASI ENDLESS MODE
         this.maxHP = 500;
-        this.playerHP = 5;
+        this.playerHP = 5; // Tetap 5 untuk testing UI Game Over
         this.dna = 0;
         this.survivalTime = 0;
         this.isGameOver = false;
         this.hasContinued = false;
         this.lastHitTime = 0;
 
-        // ✅ REKOR dari localStorage
-        this.recordTime = parseFloat(localStorage.getItem('dodgerRecordTime') || '0');
-
-        // ✅ Label bahasa (aman, tidak butuh key translations baru)
+        // ✅ Label bahasa
         const isID = getCurrentLang() === 'id';
         this.lblTime = isID ? 'Waktu' : 'Time';
-        this.lblRecord = isID ? 'Rekor' : 'Record';
-        this.lblNewRecord = isID ? '🏆 REKOR BARU!' : '🏆 NEW RECORD!';
-          this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit'; // ✅ BARU
+        this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit';
+
+        // ✅ VARIABEL TAMENG BERLAPIS (3 LEVEL)
+        this.shieldLevel = 0; // 0 = tidak ada, 1 = cyan, 2 = kuning, 3 = hijau
+        this.shieldGraphics = null;
+        this.nextShieldMilestone = 20; // Target DNA pertama
     }
 
     create(data){
@@ -148,17 +148,10 @@ export default class CellDodgerScene extends Phaser.Scene {
             strokeThickness: 3
         }).setDepth(10);
 
-        // ✅ Kanan: DNA & Rekor DIPINDAH KE BAWAH tombol pause (y=110 & 142)
+        // ✅ Kanan: DNA (y=110)
         this.dnaText = this.add.text(width - 30, 110, `DNA: 0`, {
             font: "bold 24px Arial",
             fill: "#ff00ff",
-            stroke: "#000000",
-            strokeThickness: 3
-        }).setOrigin(1, 0).setDepth(10);
-
-        this.recordText = this.add.text(width - 30, 142, `${this.lblRecord}: ${this.recordTime}s`, {
-            font: "bold 20px Arial",
-            fill: "#ffff00",
             stroke: "#000000",
             strokeThickness: 3
         }).setOrigin(1, 0).setDepth(10);
@@ -168,7 +161,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.timeText.setText(`${this.lblTime}: ${this.survivalTime}s`);
         this.hpText.setText(`HP: ${this.playerHP}/${this.maxHP}`);
         this.dnaText.setText(`DNA: ${this.dna}`);
-        this.recordText.setText(`${this.lblRecord}: ${this.recordTime}s`);
 
         if (this.playerHP <= 150) this.hpText.setColor('#ff4444');
         else if (this.playerHP <= 300) this.hpText.setColor('#ffff00');
@@ -195,6 +187,11 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         this.player.setVelocity(velocityX, velocityY);
+
+        // ✅ Update posisi & animasi tameng jika aktif
+        if (this.shieldLevel > 0 && this.shieldGraphics) {
+            this.updateShieldVisuals();
+        }
 
         this.difficultyTimer++;
         if (this.difficultyTimer % 600 === 0) {
@@ -255,13 +252,77 @@ export default class CellDodgerScene extends Phaser.Scene {
         if (this.isGameOver || !dna.active) return;
         dna.destroy();
         this.dna += 10;
+
+        // ✅ LOGIKA MILESTONE TAMENG BERLAPIS (3 LEVEL):
+        if (this.dna >= this.nextShieldMilestone && this.shieldLevel < 3) {
+            this.shieldLevel++; // Naik level: 0->1, 1->2, atau 2->3
+            this.nextShieldMilestone += 20; // Target berikutnya naik 20 lagi
+            this.activateShield(); // Gambar ulang tameng sesuai level baru
+        }
+
         this.updateHUD();
     }
 
-        hitObstacle(player, obstacle) {
+    // ==========================================
+    // ✅ FUNGSI TAMENG BERLAPIS (3 LAYER)
+    // ==========================================
+    activateShield() {
+        if (!this.shieldGraphics) {
+            this.shieldGraphics = this.add.graphics().setDepth(6);
+        }
+        this.updateShieldVisuals();
+    }
+
+    updateShieldVisuals() {
+        if (this.shieldLevel === 0 || !this.shieldGraphics || !this.player) {
+            if (this.shieldGraphics) this.shieldGraphics.clear();
+            return;
+        }
+        
+        this.shieldGraphics.clear();
+        this.shieldGraphics.x = this.player.x;
+        this.shieldGraphics.y = this.player.y;
+
+        // --- TAMENG 1 (DALAM - CYAN) ---
+        this.shieldGraphics.fillStyle(0x00ffff, 0.15);
+        this.shieldGraphics.fillCircle(0, 0, 55);
+        this.shieldGraphics.lineStyle(3, 0x00ffff, 0.8);
+        this.shieldGraphics.strokeCircle(0, 0, 55);
+
+        // --- TAMENG 2 (TENGAH - KUNING PUCAT) ---
+        if (this.shieldLevel >= 2) {
+            this.shieldGraphics.fillStyle(0xffffaa, 0.15);
+            this.shieldGraphics.fillCircle(0, 0, 75);
+            this.shieldGraphics.lineStyle(3, 0xffff00, 0.8);
+            this.shieldGraphics.strokeCircle(0, 0, 75);
+        }
+
+        // --- TAMENG 3 (LUAR - HIJAU TERANG) ---
+        if (this.shieldLevel === 3) {
+            this.shieldGraphics.fillStyle(0x00ff00, 0.15);
+            this.shieldGraphics.fillCircle(0, 0, 95);
+            this.shieldGraphics.lineStyle(3, 0x00ff00, 0.9);
+            this.shieldGraphics.strokeCircle(0, 0, 95);
+        }
+
+        this.shieldGraphics.rotation += 0.03;
+    }
+
+    breakShieldLayer() {
+        this.shieldLevel--;
+        this.updateShieldVisuals();
+    }
+    // ==========================================
+
+    hitObstacle(player, obstacle) {
         if (this.isGameOver || this.isPaused || !obstacle.active) return;
 
-        // ✅ DAMAGE -1 HP saja (obstacle langsung hancur, jadi tidak hit 2x)
+        if (this.shieldLevel > 0) {
+            this.breakShieldLayer();
+            obstacle.destroy();
+            return; 
+        }
+
         this.playerHP = Math.max(0, this.playerHP - 1);
         obstacle.destroy();
         this.updateHUD();
@@ -276,7 +337,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
     }
 
-       showContinueScreen() {
+    showContinueScreen() {
         this.isGameOver = true;
         this.physics.pause();
         this.spawnEvent.paused = true;
@@ -285,10 +346,6 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-
-        // ✅ Cek rekor SEBELUM disimpan
-        const isNewRecord = this.survivalTime > this.recordTime;
-        this.saveRecord();
 
         this.gameOverMenu = this.add.container(0, 0).setDepth(600);
 
@@ -299,7 +356,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         cardRock.setDisplaySize(860, 420);
         this.gameOverMenu.add(cardRock);
 
-        const title = this.add.text(width / 2, height / 2 - 140, getLang('dodgerGameOver'), {
+        const title = this.add.text(width / 2, height / 2 - 100, getLang('dodgerGameOver'), {
             font: "bold 48px Arial",
             fill: "#ff0000",
             stroke: "#000000",
@@ -307,7 +364,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.gameOverMenu.add(title);
 
-        const stats = this.add.text(width / 2, height / 2 - 80,
+        const stats = this.add.text(width / 2, height / 2 - 40,
             `${this.lblTime}: ${this.survivalTime}s   |   DNA: ${this.dna}`, {
             font: "bold 26px Arial",
             fill: "#ffffff",
@@ -316,18 +373,8 @@ export default class CellDodgerScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.gameOverMenu.add(stats);
 
-        if (isNewRecord) {
-            const newRec = this.add.text(width / 2, height / 2 - 40, this.lblNewRecord, {
-                font: "bold 28px Arial",
-                fill: "#ffff00",
-                stroke: "#000000",
-                strokeThickness: 4
-            }).setOrigin(0.5);
-            this.gameOverMenu.add(newRec);
-        }
-
-        // ✅ TOMBOL RESUME (pengganti Exit) - SELALU ada, tanpa syarat
-        const resumeBtn = this.add.image(width / 2, height / 2 + 60, "resume-btn");
+        // ✅ TOMBOL RESUME - lanjut main
+        const resumeBtn = this.add.image(width / 2, height / 2 + 40, "resume-btn");
         resumeBtn.setDisplaySize(280, 80);
         resumeBtn.setInteractive({ useHandCursor: true });
         resumeBtn.on("pointerover", () => resumeBtn.setDisplaySize(300, 86));
@@ -335,8 +382,18 @@ export default class CellDodgerScene extends Phaser.Scene {
         resumeBtn.on("pointerdown", () => this.doContinue());
         this.gameOverMenu.add(resumeBtn);
 
-        // Hint kecil cara keluar
-        const hint = this.add.text(width / 2, height / 2 + 120, this.lblQuitHint, {
+        // ✅ TOMBOL EXIT - langsung keluar
+        const exitBtn = this.add.image(width / 2, height / 2 + 130, "exit-btn");
+        exitBtn.setDisplaySize(280, 80);
+        exitBtn.setInteractive({ useHandCursor: true });
+        exitBtn.on("pointerover", () => exitBtn.setDisplaySize(300, 86));
+        exitBtn.on("pointerout", () => exitBtn.setDisplaySize(280, 80));
+        exitBtn.on("pointerdown", () => {
+            this.scene.start("MenuScene");
+        });
+        this.gameOverMenu.add(exitBtn);
+
+        const hint = this.add.text(width / 2, height / 2 + 190, this.lblQuitHint, {
             font: "16px Arial",
             fill: "#aaaaaa",
             stroke: "#000000",
@@ -346,7 +403,14 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     doContinue() {
-        // ✅ HP penuh lagi, TAPI waktu & DNA TIDAK reset (run lanjut terus)
+        // ✅ Reset tameng saat continue
+        this.shieldLevel = 0;
+        if (this.shieldGraphics) {
+            this.shieldGraphics.destroy();
+            this.shieldGraphics = null;
+        }
+
+        // ✅ HP penuh lagi, TAPI waktu & DNA TIDAK reset
         this.playerHP = this.maxHP;
         this.isGameOver = false;
 
@@ -361,13 +425,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.timerEvent.paused = false;
 
         this.updateHUD();
-    }
-
-    saveRecord() {
-        if (this.survivalTime > this.recordTime) {
-            this.recordTime = this.survivalTime;
-            localStorage.setItem('dodgerRecordTime', String(this.recordTime));
-        }
     }
 
     createPauseButton() {
@@ -408,7 +465,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.exitBtn.on("pointerover", () => this.exitBtn.setDisplaySize(300, 86));
         this.exitBtn.on("pointerout", () => this.exitBtn.setDisplaySize(280, 80));
         this.exitBtn.on("pointerdown", () => {
-            this.saveRecord();   // ✅ Simpan rekor dulu sebelum keluar
             this.scene.start("MenuScene");
         });
         this.pauseMenu.add(this.exitBtn);
@@ -482,7 +538,7 @@ export default class CellDodgerScene extends Phaser.Scene {
                 backgroundColor: '#330000'
             });
         } else {
-            this.fullscreenBtn.setText('⛶'); // ✅ DIPERBAIKI (dulu '')
+            this.fullscreenBtn.setText('⛶');
             this.fullscreenBtn.setStyle({
                 fill: '#00ff00',
                 stroke: '#00cc00',
