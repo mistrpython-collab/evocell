@@ -66,6 +66,7 @@ export default class MenuScene extends Phaser.Scene {
                 repeat: -1
             });
         }
+        
 
         this.add.image(width/2, height/2, 'bgMain');
         const logo = this.add.image(width/2, height/4 - 30, 'logo');

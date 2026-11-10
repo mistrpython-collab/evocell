@@ -39,22 +39,22 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('virus', 'assets/images/virus/one-virus-magenta.png');
         this.load.image('wbc', 'assets/images/white-blood-cell/one-white-blood-cell.png');
         this.load.image('bacteria', 'assets/images/bacteria/one-bacteria-green.png');
-        this.load.image('wbcMisi1Image', 'assets/images/white-blood-cell/wbc-misi1.jpg'); // ✅ BARU
+        this.load.image('wbcMisi1Image', 'assets/images/white-blood-cell/wbc-misi1.jpg');
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
 
-                // ASET CELL DODGER V2
+        // ASET CELL DODGER V2
         this.load.image('dnaCoin', 'assets/images/cell-dodger/helixdnakoin.png');
         this.load.image('bossMimivirus', 'assets/images/cell-dodger/mimivirus.png');
         this.load.image('bossPandoravirus', 'assets/images/cell-dodger/pandoravirus.png');
         this.load.image('bossThiomargarita', 'assets/images/cell-dodger/whitebacteriapearl.png');
         this.load.image('epulo', 'assets/images/cell-dodger/epulo.png');
         
-        // ✅ BACKGROUND VIRUS - Pastikan path benar
+        // BACKGROUND VIRUS
         this.load.image('bgVirus', 'assets/images/scene-evocell/human-imune-system.png');
         this.load.image('bacteriaBatang', 'assets/images/bacteria/bacteria-batang.png');
-this.load.image('bacteriaSpiral', 'assets/images/bacteria/bacteria-spiral.png');
-this.load.image('bakteriRantai', 'assets/images/bacteria/bakteri-rantai.png');
-this.load.image('bakteriBulat', 'assets/images/bacteria/bakteri-bulat.png');
+        this.load.image('bacteriaSpiral', 'assets/images/bacteria/bacteria-spiral.png');
+        this.load.image('bakteriRantai', 'assets/images/bacteria/bakteri-rantai.png');
+        this.load.image('bakteriBulat', 'assets/images/bacteria/bakteri-bulat.png');
         
         // Card & Button
         this.load.image('cardRock', 'assets/images/main-menu-evocell/card-rock.png');
@@ -63,25 +63,19 @@ this.load.image('bakteriBulat', 'assets/images/bacteria/bakteri-bulat.png');
         this.load.image('resume-btn', 'assets/images/main-menu-evocell/resume-btn.png');
         this.load.image('exit-btn', 'assets/images/main-menu-evocell/exit-btn.png');
 
-        // ... kode yang sudah ada ...
+        // ICON DEVICE SELECTOR
+        this.load.image('pcIcon', 'assets/images/main-menu-evocell/pc-ikon.png');
+        this.load.image('laptopIcon', 'assets/images/main-menu-evocell/laptop-ikon.png');
+        this.load.image('mobileIcon', 'assets/images/main-menu-evocell/hp-ikon.png');
 
-// ✅ ICON DEVICE SELECTOR
-this.load.image('pcIcon', 'assets/images/main-menu-evocell/pc-ikon.png');
-this.load.image('laptopIcon', 'assets/images/main-menu-evocell/laptop-ikon.png');
-this.load.image('mobileIcon', 'assets/images/main-menu-evocell/hp-ikon.png');
+        // ICON HUD KONTROL
+        this.load.image('wasdIcon', 'assets/images/main-menu-evocell/wasd-ikon.png');
+        this.load.image('cursorIcon', 'assets/images/main-menu-evocell/cursor-ikon.png');
+        this.load.image('autoLockIcon', 'assets/images/main-menu-evocell/auto-lock.png');
 
-// ✅ ICON HUD KONTROL
-this.load.image('wasdIcon', 'assets/images/main-menu-evocell/wasd-ikon.png');
-this.load.image('cursorIcon', 'assets/images/main-menu-evocell/cursor-ikon.png');
-this.load.image('autoLockIcon', 'assets/images/main-menu-evocell/auto-lock.png');
-
-// ✅ Tambahkan ini untuk load musik
-    this.load.audio('mainMenuMusic', 'assets/audio/music/glass_trench.mp3');
-    // Di boot-scene.js -> preload()
-this.load.audio('wbcMusic', 'assets/audio/music/sentinel_at_the_membrane.mp3');
-
-
-
+        // MUSIK
+        this.load.audio('mainMenuMusic', 'assets/audio/music/glass_trench.mp3');
+        
     }
     
     create() {
