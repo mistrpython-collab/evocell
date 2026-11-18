@@ -29,7 +29,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         //    • DNA 20 → Tameng 1 (Cyan, 1 HP)
         //    • DNA 40 → Tameng 2 (Kuning, 1 HP)
         //    • DNA 60 → Tameng 3 (Hijau, 1 HP)
-        //    • DNA 80 → Tembakan Aktif (Tier 1)
         //    • DNA 100 → Tameng 4 (Ungu Terang, 2 HP)
         // ==========================================
         this.shieldLevel = 0;
@@ -58,7 +57,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.killsNeededForNextTier = [2, 3];
 
         // ==========================================
-        // ✅ VARIABEL PENEMBAKAN KE-2 (DUA ARAH DIAGONAL) BARU
+        // ✅ VARIABEL PENEMBAKAN KE-2 (DUA ARAH DIAGONAL)
         //    Unlock: DNA 250 DAN kill 25. Interval: 2.5 detik
         // ==========================================
         this.hasDualShotUpgrade = false;
@@ -66,6 +65,26 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.dualShotUnlockKills = 25;
         this.lastDualShotTime = 0;
         this.dualShotInterval = 2500;
+
+        // ==========================================
+        // ✅ VARIABEL PENEMBAKAN KE-3 (DUA ARAH DIAGONAL, LEBIH CEPAT)
+        //    Unlock: DNA 250 DAN kill 35. Interval: 1.5 detik
+        // ==========================================
+        this.hasAdvancedShotUpgrade = false;
+        this.advancedShotUnlockDNA = 250;
+        this.advancedShotUnlockKills = 35;
+        this.lastAdvancedShotTime = 0;
+        this.advancedShotInterval = 1500;
+
+        // ==========================================
+        // ✅ VARIABEL PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR) BARU
+        //    Unlock: DNA 300 DAN kill 300. Interval: 1.0 detik
+        // ==========================================
+        this.hasQuadShotUpgrade = false;
+        this.quadShotUnlockDNA = 300;
+        this.quadShotUnlockKills = 300;
+        this.lastQuadShotTime = 0;
+        this.quadShotInterval = 1000;
 
         // ==========================================
         // ✅ KILL COUNTER
@@ -115,7 +134,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         bulletGraphics.generateTexture('bulletYellowGreen', 20, 20);
         bulletGraphics.destroy();
 
-        // ✅ TEKSTUR PELURU KE-2 (Cyan outline Biru) BARU
+        // ✅ TEKSTUR PELURU KE-2, KE-3 & KE-4 (Cyan outline Biru) - dipakai bersama
         const dualGraphics = this.add.graphics();
         dualGraphics.lineStyle(3, 0x0066ff, 1);
         dualGraphics.fillStyle(0x00ffff, 1);
@@ -270,7 +289,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         // ==========================================
-        // ✅ 4. CEK UNLOCK TEMBAKAN KE-2 (DNA 250 + 25 KILL) BARU
+        // ✅ 4. CEK UNLOCK TEMBAKAN KE-2 (DNA 250 + 25 KILL)
         // ==========================================
         if (this.dna >= this.dualShotUnlockDNA &&
             this.bacteriaKillCount >= this.dualShotUnlockKills &&
@@ -279,7 +298,25 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         // ==========================================
-        // ✅ 5. SISTEM PENEMBAKAN UTAMA (1 ARAH KE ATAS)
+        // ✅ 5. CEK UNLOCK TEMBAKAN KE-3 (DNA 250 + 35 KILL)
+        // ==========================================
+        if (this.dna >= this.advancedShotUnlockDNA &&
+            this.bacteriaKillCount >= this.advancedShotUnlockKills &&
+            !this.hasAdvancedShotUpgrade) {
+            this.hasAdvancedShotUpgrade = true;
+        }
+
+        // ==========================================
+        // ✅ 6. CEK UNLOCK TEMBAKAN KE-4 (DNA 300 + 300 KILL) BARU
+        // ==========================================
+        if (this.dna >= this.quadShotUnlockDNA &&
+            this.bacteriaKillCount >= this.quadShotUnlockKills &&
+            !this.hasQuadShotUpgrade) {
+            this.hasQuadShotUpgrade = true;
+        }
+
+        // ==========================================
+        // ✅ 7. SISTEM PENEMBAKAN UTAMA (1 ARAH KE ATAS)
         // ==========================================
         if (this.hasShootingUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
@@ -290,13 +327,35 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         // ==========================================
-        // ✅ 6. SISTEM PENEMBAKAN KE-2 (DUA ARAH DIAGONAL) BARU
+        // ✅ 8. SISTEM PENEMBAKAN KE-2 (DUA ARAH DIAGONAL, 2.5s)
         // ==========================================
         if (this.hasDualShotUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
             if (currentTime - this.lastDualShotTime >= this.dualShotInterval) {
                 this.shootDual();
                 this.lastDualShotTime = currentTime;
+            }
+        }
+
+        // ==========================================
+        // ✅ 9. SISTEM PENEMBAKAN KE-3 (DUA ARAH DIAGONAL, 1.5s)
+        // ==========================================
+        if (this.hasAdvancedShotUpgrade && !this.isPaused && !this.isGameOver) {
+            const currentTime = this.time.now;
+            if (currentTime - this.lastAdvancedShotTime >= this.advancedShotInterval) {
+                this.shootAdvanced();
+                this.lastAdvancedShotTime = currentTime;
+            }
+        }
+
+        // ==========================================
+        // ✅ 10. SISTEM PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR, 1.0s) BARU
+        // ==========================================
+        if (this.hasQuadShotUpgrade && !this.isPaused && !this.isGameOver) {
+            const currentTime = this.time.now;
+            if (currentTime - this.lastQuadShotTime >= this.quadShotInterval) {
+                this.shootQuad();
+                this.lastQuadShotTime = currentTime;
             }
         }
 
@@ -468,12 +527,10 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // ✅ TEMBAKAN KE-2 (DUA ARAH DIAGONAL) BARU
-    //    Satu peluru miring kiri-atas, satu miring kanan-atas
+    // ✅ TEMBAKAN KE-2 (DUA ARAH DIAGONAL, 2.5s)
     // ==========================================
     shootDual() {
         const speed = 500;
-        // Sudut: -90° (atas) ± 35° → kiri-atas dan kanan-atas
         const angleLeft = -Math.PI / 2 - 0.61;
         const angleRight = -Math.PI / 2 + 0.61;
 
@@ -487,6 +544,47 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         this.time.delayedCall(3000, () => { if (b1.active) b1.destroy(); });
         this.time.delayedCall(3000, () => { if (b2.active) b2.destroy(); });
+    }
+
+    // ==========================================
+    // ✅ TEMBAKAN KE-3 (DUA ARAH DIAGONAL, 1.5s)
+    // ==========================================
+    shootAdvanced() {
+        const speed = 500;
+        const angleLeft = -Math.PI / 2 - 0.61;
+        const angleRight = -Math.PI / 2 + 0.61;
+
+        const b1 = this.projectiles.create(this.player.x, this.player.y - 20, 'bulletCyanBlue');
+        b1.setDepth(4);
+        b1.setVelocity(Math.cos(angleLeft) * speed, Math.sin(angleLeft) * speed);
+
+        const b2 = this.projectiles.create(this.player.x, this.player.y - 20, 'bulletCyanBlue');
+        b2.setDepth(4);
+        b2.setVelocity(Math.cos(angleRight) * speed, Math.sin(angleRight) * speed);
+
+        this.time.delayedCall(3000, () => { if (b1.active) b1.destroy(); });
+        this.time.delayedCall(3000, () => { if (b2.active) b2.destroy(); });
+    }
+
+    // ==========================================
+    // ✅ TEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR, 1.0s) BARU
+    // ==========================================
+    shootQuad() {
+        const speed = 500;
+        // 4 sudut simetris yang lebih lebar dari tembakan ke-2/3
+        const angles = [
+            -Math.PI / 2 - 0.9, // Kiri luar
+            -Math.PI / 2 - 0.3, // Kiri dalam
+            -Math.PI / 2 + 0.3, // Kanan dalam
+            -Math.PI / 2 + 0.9  // Kanan luar
+        ];
+
+        angles.forEach(angle => {
+            const b = this.projectiles.create(this.player.x, this.player.y - 20, 'bulletCyanBlue');
+            b.setDepth(4);
+            b.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+            this.time.delayedCall(3000, () => { if (b.active) b.destroy(); });
+        });
     }
 
     // ==========================================
@@ -611,9 +709,10 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.shootInterval = 1000;
         this.killsInCurrentTier = 0;
 
-        // ✅ Reset timer tembakan ke-2 (status unlock TIDAK direset,
-        //    karena DNA & kill count tidak berubah saat continue)
+        // ✅ Reset timer semua tembakan (status unlock TIDAK direset)
         this.lastDualShotTime = 0;
+        this.lastAdvancedShotTime = 0;
+        this.lastQuadShotTime = 0; // ✅ Reset timer tembakan ke-4
 
         this.playerHP = this.maxHP;
         this.isGameOver = false;
