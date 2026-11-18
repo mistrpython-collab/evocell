@@ -1,4 +1,4 @@
-// prokaryotic-game.js - LENGKAP: 3 Boss + Cursor Smooth + Dash Jauh + Shooter 4 Bola + Chaser Nembak
+// prokaryotic-game.js - LENGKAP: 3 Boss + Pointer Follow PER-FRAME (anti-overshoot) + Dash + Shooter + Chaser
 import { fullscreenManager } from '../utils/fullscreen.js';
 import { getLang } from '../utils/translations.js';
 
@@ -74,8 +74,8 @@ export default class ProkaryoticGame extends Phaser.Scene {
         this.pauseMenuContainer = null;
         this.pauseButton = null;
         
-// ✅ Ambil nomor misi otomatis ("Misi 2" -> "2")
-const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
+        // ✅ Ambil nomor misi otomatis ("Misi 2" -> "2")
+        const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
 
         this.add.text(30, 30, `${getLang('prokaryoticTitle')} ${missionNumber}`, {
             font: 'bold 28px Arial', fill: '#00ff00', stroke: '#000000', strokeThickness: 4
@@ -96,19 +96,25 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
         
         this.player = new ProkaryoticCell(this, width/2, height/2);
         
+        // ==========================================
+        // ✅ KONTROL POINTER (Mouse + Touch) - WASD DIHAPUS TOTAL
+        //    Event pointer HANYA menyimpan target.
+        //    Pergerakan dihitung PER-FRAME di update() → anti-overshoot.
+        // ==========================================
         this.input.on('pointermove', (pointer) => {
             if (!this.isPaused && !this.isGameOver) {
-                this.player.moveToPointer(pointer);
+                this.player.setPointerTarget(pointer.x, pointer.y);
             }
         });
         
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.W,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            left: Phaser.Input.Keyboard.KeyCodes.A,
-            right: Phaser.Input.Keyboard.KeyCodes.D
+        // ✅ Saat jari menyentuh layar (tap/drag awal), langsung set target
+        this.input.on('pointerdown', (pointer) => {
+            if (!this.isPaused && !this.isGameOver) {
+                this.player.setPointerTarget(pointer.x, pointer.y);
+            }
         });
+        
+        // Hanya ESC yang tersisa untuk keyboard (khusus Pause)
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         
         this.time.addEvent({
@@ -144,6 +150,11 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
     update(){
         if (this.isPaused || this.isGameOver) return;
         
+        // ✅ GERAKAN PLAYER DIKALKULASI SETIAP FRAME (per-frame follow)
+        //    Ini kunci anti-overshoot: saat kursor diam, target diam,
+        //    velocity mengecil proporsional jarak → sel berhenti bersih.
+        this.player.updateFollow();
+        
         this.enemies.children.iterate((bacteria) => {
             if (bacteria && bacteria.active) bacteria.updateAI();
         });
@@ -151,14 +162,6 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
         this.projectiles.children.iterate((proj) => {
             if (proj && proj.active) proj.updateProjectile();
         });
-        
-        const speed = 320;
-        let vx = 0, vy = 0;
-        if (this.cursors.left.isDown || this.wasd.left.isDown) { vx = -speed; this.player.setFlipX(true); }
-        if (this.cursors.right.isDown || this.wasd.right.isDown) { vx = speed; this.player.setFlipX(false); }
-        if (this.cursors.up.isDown || this.wasd.up.isDown) vy = -speed;
-        if (this.cursors.down.isDown || this.wasd.down.isDown) vy = speed;
-        this.player.body.setVelocity(vx, vy);
         
         if (this.boss1 && this.boss1.active) {
             if (this.score >= this.BOSS1_KILL_SCORE) {
@@ -248,7 +251,7 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
     spawnBoss3(){
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        const warningText = this.add.text(width/2, height/2, '️ WARNING! ⚠️\nBOSS 3 INCOMING!', {
+        const warningText = this.add.text(width/2, height/2, '⚠️ WARNING! ⚠️\nBOSS 3 INCOMING!', {
             font: 'bold 72px Arial', fill: '#ff0000', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(30);
         this.tweens.add({ targets: warningText, alpha: 0.3, duration: 300, yoyo: true, repeat: 5 });
@@ -273,7 +276,7 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
         this.boss3Chaser = new BossBacteriaYellowChaser(this, width * 2/3, height/2, this);
         this.enemies.add(this.boss3Chaser);
         this.boss3Phase2 = true;
-        const bossAlert = this.add.text(width/2, height/2, '️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 15000 to Kill Both!', {
+        const bossAlert = this.add.text(width/2, height/2, '⚠️ BOSS 3 PHASE 2! ⚠️\nSPLIT INTO 2 BOSSES!\nReach 15000 to Kill Both!', {
             font: 'bold 48px Arial', fill: '#ffaa00', stroke: '#000000', strokeThickness: 8, align: 'center'
         }).setOrigin(0.5).setDepth(25);
         this.time.delayedCall(3000, () => bossAlert.destroy());
@@ -413,7 +416,7 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
         const height = this.cameras.main.height;
         this.pauseMenuContainer = this.add.container(0, 0).setDepth(20);
         const overlay = this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.7);
-        overlay.setInteractive();
+        overlay.setInteractive(); // ✅ tangkap tap, jangan tembus ke pointermove
         this.pauseMenuContainer.add(overlay);
         const panel = this.add.image(width/2, height/2, 'cardRock');
         panel.setDisplaySize(500, 320);
@@ -501,7 +504,7 @@ const missionNumber = (this.mission || 'Misi 1').replace('Misi ', '');
     }
 }
 
-// ===== CLASS PLAYER - ULTIMATE SMOOTH CURSOR MOVEMENT =====
+// ===== CLASS PLAYER - POINTER FOLLOW PER-FRAME (ANTI-OVERSHOOT) =====
 class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'prokaryotic');
@@ -510,15 +513,21 @@ class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
         this.cellSize = 1;
         this.baseScale = 1.0;
         this.radius = 45;
-        this.baseSpeed = 320;
         this.isFlipped = false;
         this.setScale(this.baseScale);
         this.updateBody();
         this.setCollideWorldBounds(true);
         this.setDepth(5);
-        this.currentSpeed = 0;
-        this.acceleration = 18;
-        this.deceleration = 15;
+
+        // ✅ TARGET diset oleh event pointer, dihitung per-frame di updateFollow()
+        this.targetX = x;
+        this.targetY = y;
+
+               // ✅ PARAMETER FOLLOW (VERSI LEBIH PELAN & HALUS)
+        this.followSpeed = 3.5;      // Diturunkan dari 6 (akselerasi awal lebih pelan)
+        this.maxFollowSpeed = 280;   // Diturunkan dari 420 (kecepatan maksimum dibatasi)
+        this.smoothing = 0.15;       // Diturunkan dari 0.28 (pergerakan lebih gradual/halus)
+        this.deadZone = 12;          // Tetap 12 (radius berhenti)
     }
 
     updateBody() {
@@ -528,28 +537,47 @@ class ProkaryoticCell extends Phaser.Physics.Arcade.Sprite {
         this.body.setCircle(textureRadius, this.width/2 - textureRadius, this.height/2 - textureRadius);
     }
 
-    moveToPointer(pointer) {
-        const dx = pointer.x - this.x;
-        const dy = pointer.y - this.y;
+    // ✅ Hanya menyimpan target, TIDAK menghitung velocity di sini
+    setPointerTarget(px, py) {
+        this.targetX = px;
+        this.targetY = py;
+    }
+
+    // ✅ Dipanggil SETIAP FRAME dari scene.update() → kunci anti-overshoot
+    updateFollow() {
+        if (!this.body || !this.active) return;
+
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (dx > 10 && !this.isFlipped) { this.setFlipX(true); this.isFlipped = true; }
-        else if (dx < -10 && this.isFlipped) { this.setFlipX(false); this.isFlipped = false; }
-        if (distance < 5) { this.body.setVelocity(0, 0); this.currentSpeed = 0; return; }
-        
-        let targetSpeed;
-        if (distance > 150) targetSpeed = this.baseSpeed;
-        else if (distance > 50) targetSpeed = this.baseSpeed * 0.85;
-        else targetSpeed = 120;
-        
-        if (this.currentSpeed < targetSpeed) {
-            this.currentSpeed = Math.min(this.currentSpeed + this.acceleration, targetSpeed);
-        } else {
-            this.currentSpeed = Math.max(this.currentSpeed - this.deceleration, targetSpeed);
+
+        // Sudah dekat target → berhenti bersih
+        if (distance < this.deadZone) {
+            this.body.setVelocity(0, 0);
+            return;
         }
-        
-        const dirX = dx / distance;
-        const dirY = dy / distance;
-        this.body.setVelocity(dirX * this.currentSpeed, dirY * this.currentSpeed);
+
+        // Velocity "diinginkan" proporsional jarak (jauh = cepat, dekat = pelan)
+        let desiredVX = dx * this.followSpeed;
+        let desiredVY = dy * this.followSpeed;
+
+        // Cap kecepatan maksimum
+        const desiredSpeed = Math.sqrt(desiredVX * desiredVX + desiredVY * desiredVY);
+        if (desiredSpeed > this.maxFollowSpeed) {
+            const k = this.maxFollowSpeed / desiredSpeed;
+            desiredVX *= k;
+            desiredVY *= k;
+        }
+
+        // Lerp velocity aktual → desired (damping, anti-overshoot)
+        const cur = this.body.velocity;
+        const nx = cur.x + (desiredVX - cur.x) * this.smoothing;
+        const ny = cur.y + (desiredVY - cur.y) * this.smoothing;
+        this.body.setVelocity(nx, ny);
+
+        // Flip arah sprite
+        if (dx > 10) this.setFlipX(false);
+        else if (dx < -10) this.setFlipX(true);
     }
 
     grow() {

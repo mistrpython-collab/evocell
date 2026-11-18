@@ -20,6 +20,7 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ✅ Label bahasa
         const isID = getCurrentLang() === 'id';
+        this.isID = isID;
         this.lblTime = isID ? 'Waktu' : 'Time';
         this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit';
 
@@ -27,6 +28,13 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.shieldLevel = 0; // 0 = tidak ada, 1 = cyan, 2 = kuning, 3 = hijau
         this.shieldGraphics = null;
         this.nextShieldMilestone = 20; // Target DNA pertama
+
+        // ✅ POINTER FOLLOW (mouse + touch) - TANPA WASD, TANPA JOYSTICK
+        this.targetX = null;
+        this.targetY = null;
+        this.followSpeed = 8;        // multiplier jarak → kecepatan (naikkan = responsif)
+        this.maxFollowSpeed = 400;   // batas maksimum kecepatan (agar tidak teleport)
+        this.deadZone = 5;           // radius berhenti dalam pixel
     }
 
     create(data){
@@ -49,6 +57,10 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.player.setScale(2);
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(5);
+
+        // ✅ Set target awal = posisi player (agar sel tidak "melompat" ke kursor saat mulai)
+        this.targetX = this.player.x;
+        this.targetY = this.player.y;
 
         // 3. ✅ DAFTAR 5 JENIS BAKTERI
         this.bacteriaTypes = [
@@ -90,18 +102,33 @@ export default class CellDodgerScene extends Phaser.Scene {
             loop: true
         });
 
-        // 8. Kontrol 4 Arah
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.keys = this.input.keyboard.addKeys({
-            up: Phaser.Input.Keyboard.KeyCodes.W,
-            down: Phaser.Input.Keyboard.KeyCodes.S,
-            left: Phaser.Input.Keyboard.KeyCodes.A,
-            right: Phaser.Input.Keyboard.KeyCodes.D
+        // ==========================================
+        // ✅ 8. KONTROL POINTER (mouse + touch) - SEMUA DEVICE
+        //    Phaser otomatis treat touch sebagai pointer, jadi 1 sistem
+        //    untuk HP (jari) & PC/Laptop (mouse). WASD & joystick DIHAPUS.
+        // ==========================================
+        this.input.on('pointermove', (pointer) => {
+            if (this.isPaused || this.isGameOver) return;
+            this.targetX = pointer.x;
+            this.targetY = pointer.y;
         });
+
+        // ✅ Tambahan: saat jari pertama kali menyentuh layar (tap/drag awal),
+        //    langsung update target agar di HP sel bergerak walau jari diam di satu titik.
+        this.input.on('pointerdown', (pointer) => {
+            if (this.isPaused || this.isGameOver) return;
+            this.targetX = pointer.x;
+            this.targetY = pointer.y;
+        });
+
+        // ✅ ESC tetap untuk pause (keyboard hanya untuk pause, bukan movement)
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
 
         // 9. ✅ INSTRUKSI - TERJEMAHAN (hilang setelah 5 detik)
-        const instruction = this.add.text(width / 2, height - 40, getLang('dodgerInstruction'), {
+        const instrText = this.isID
+            ? '🖱️ Gerakkan mouse / jari untuk mengikuti sel'
+            : '🖱️ Move mouse / finger to follow the cell';
+        const instruction = this.add.text(width / 2, height - 40, instrText, {
             font: "18px Arial",
             fill: "#ffffff",
             stroke: "#000000",
@@ -170,23 +197,31 @@ export default class CellDodgerScene extends Phaser.Scene {
     update() {
         if (this.isPaused || this.isGameOver) return;
 
-        const speed = 300;
-        let velocityX = 0;
-        let velocityY = 0;
+        // ==========================================
+        // ✅ POINTER FOLLOW MOVEMENT (mouse + touch)
+        //    Sel mengikuti kursor/jari dengan kecepatan proporsional jarak:
+        //    • Jauh  = cepat (max dibatasi maxFollowSpeed)
+        //    • Dekat = melambat (natural stop)
+        //    • Deadzone = berhenti total
+        // ==========================================
+        if (this.targetX !== null && this.targetY !== null && this.player && this.player.body) {
+            const dx = this.targetX - this.player.x;
+            const dy = this.targetY - this.player.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (this.cursors.left.isDown || this.keys.left.isDown) {
-            velocityX = -speed;
-        } else if (this.cursors.right.isDown || this.keys.right.isDown) {
-            velocityX = speed;
+            if (distance > this.deadZone) {
+                const speed = Math.min(distance * this.followSpeed, this.maxFollowSpeed);
+                const vx = (dx / distance) * speed;
+                const vy = (dy / distance) * speed;
+                this.player.setVelocity(vx, vy);
+
+                // Flip sprite sesuai arah horizontal
+                if (dx > 10) this.player.setFlipX(false);
+                else if (dx < -10) this.player.setFlipX(true);
+            } else {
+                this.player.setVelocity(0, 0);
+            }
         }
-
-        if (this.cursors.up.isDown || this.keys.up.isDown) {
-            velocityY = -speed;
-        } else if (this.cursors.down.isDown || this.keys.down.isDown) {
-            velocityY = speed;
-        }
-
-        this.player.setVelocity(velocityX, velocityY);
 
         // ✅ Update posisi & animasi tameng jika aktif
         if (this.shieldLevel > 0 && this.shieldGraphics) {
@@ -278,7 +313,7 @@ export default class CellDodgerScene extends Phaser.Scene {
             if (this.shieldGraphics) this.shieldGraphics.clear();
             return;
         }
-        
+
         this.shieldGraphics.clear();
         this.shieldGraphics.x = this.player.x;
         this.shieldGraphics.y = this.player.y;
@@ -317,12 +352,14 @@ export default class CellDodgerScene extends Phaser.Scene {
     hitObstacle(player, obstacle) {
         if (this.isGameOver || this.isPaused || !obstacle.active) return;
 
+        // ✅ CEK TAMENG DULU!
         if (this.shieldLevel > 0) {
             this.breakShieldLayer();
             obstacle.destroy();
-            return; 
+            return;
         }
 
+        // ✅ Jika tidak ada tameng, baru kena damage -1 HP
         this.playerHP = Math.max(0, this.playerHP - 1);
         obstacle.destroy();
         this.updateHUD();
@@ -350,6 +387,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.gameOverMenu = this.add.container(0, 0).setDepth(600);
 
         const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75);
+        overlay.setInteractive(); // ✅ tangkap tap, jangan tembus ke pointermove
         this.gameOverMenu.add(overlay);
 
         const cardRock = this.add.image(width / 2, height / 2, "cardRock");
@@ -382,7 +420,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         resumeBtn.on("pointerdown", () => this.doContinue());
         this.gameOverMenu.add(resumeBtn);
 
-        // ✅ TOMBOL EXIT - langsung keluar
+        // ✅ TOMBOL EXIT - langsung keluar (TIDAK SAVE)
         const exitBtn = this.add.image(width / 2, height / 2 + 130, "exit-btn");
         exitBtn.setDisplaySize(280, 80);
         exitBtn.setInteractive({ useHandCursor: true });
@@ -410,7 +448,7 @@ export default class CellDodgerScene extends Phaser.Scene {
             this.shieldGraphics = null;
         }
 
-        // ✅ HP penuh lagi, TAPI waktu & DNA TIDAK reset
+        // ✅ HP penuh lagi, TAPI waktu & DNA TIDAK reset (run lanjut terus)
         this.playerHP = this.maxHP;
         this.isGameOver = false;
 
@@ -445,6 +483,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.pauseMenu = this.add.container(0, 0).setDepth(500).setVisible(false);
 
         const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75);
+        overlay.setInteractive(); // ✅ tangkap tap, jangan tembus ke pointermove
         this.pauseMenu.add(overlay);
 
         const cardRock = this.add.image(width / 2, height / 2, "cardRock");
@@ -465,6 +504,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.exitBtn.on("pointerover", () => this.exitBtn.setDisplaySize(300, 86));
         this.exitBtn.on("pointerout", () => this.exitBtn.setDisplaySize(280, 80));
         this.exitBtn.on("pointerdown", () => {
+            // ❌ TIDAK SAVE - langsung keluar
             this.scene.start("MenuScene");
         });
         this.pauseMenu.add(this.exitBtn);
@@ -546,5 +586,4 @@ export default class CellDodgerScene extends Phaser.Scene {
             });
         }
     }
-    
 }
