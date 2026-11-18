@@ -1,4 +1,71 @@
 // js/scenes/cell-dodger-scene.js
+
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *  EVOCELL — CELL DODGER (Misi 3 · Prokaryotic)
+ *  js/scenes/cell-dodger-scene.js
+ * ═══════════════════════════════════════════════════════════════
+ *
+ *  🎮 GAMEPLAY
+ *  ─────────────────────────────────────────────────────────────
+ *  • Gerak      : Pointer follow (mouse + touch). TANPA WASD/joystick.
+ *  • Mode       : Endless survival. maxHP = 500, playerHP awal = 5 (test).
+ *  • Musuh      : 5 jenis bakteri jatuh dari atas (bacteria, batang,
+ *                 spiral, rantai, bulat).
+ *  • Pickup     : DNA coin, +10 per koin.
+ *  • Damage     : 1 HP per tabrakan (jika tameng habis).
+ *
+ *  🛡️ PROGRESI TAMENG (4 LAPISAN)
+ *  ─────────────────────────────────────────────────────────────
+ *  DNA  20  →  Tameng 1 : Cyan          (1 HP)
+ *  DNA  40  →  Tameng 2 : Kuning pucat  (1 HP)
+ *  DNA  60  →  Tameng 3 : Hijau terang  (1 HP)
+ *  DNA 100  →  Tameng 4 : UNGU TERANG   (2 HP) ← tahan 2x tabrak
+ *                  · visual meredup saat sisa 1 HP (feedback)
+ *                  · sengaja di 100 (bukan 80) agar tembakan (80)
+ *                    muncul DULU, baru tameng ke-4 menyusul
+ *
+ *  🔫 PROGRESI TEMBAKAN (4 SISTEM)
+ *  ─────────────────────────────────────────────────────────────
+ *  DNA  80            →  Tembakan 1 : 1 peluru lurus ke atas
+ *                          · tier kecepatan via kill count:
+ *                              +2 kill → 1.0s → 0.5s
+ *                              +3 kill → 0.5s → 0.3s  (MAX)
+ *  DNA 250 + 25 kill  →  Tembakan 2 : 2 peluru diagonal (±35°) / 2.5s
+ *  DNA 250 + 35 kill  →  Tembakan 3 : 2 peluru diagonal (±35°) / 1.5s
+ *  DNA 300 + 300 kill →  Tembakan 4 : 4 peluru fan-spread      / 1.0s
+ *                          (kiri-luar, kiri-dalam, kanan-dalam, kanan-luar)
+ *  Warna peluru : Tembakan 1 = Kuning outline Hijau
+ *                 Tembakan 2/3/4 = Cyan outline Biru (identik)
+ *  Catatan : upgrade tembakan berjalan SILENT (tanpa teks notifikasi)
+ *
+ *  💀 KILL COUNTER
+ *  ─────────────────────────────────────────────────────────────
+ *  • Naik tiap peluru membunuh bakteri (semua 4 sistem dihitung)
+ *  • Tampil di HUD kiri (di bawah HP) & di layar Game Over
+ *  • RESUME (kalah → lanjut) : kill TETAP terkumpul
+ *  • EXIT (pause / game over) : kill RESET ke 0
+ *
+ *  ⚙️ SISTEM PENDUKUNG
+ *  ─────────────────────────────────────────────────────────────
+ *  • Pause menu (ESC / tombol) : Resume & Exit
+ *  • Fullscreen toggle (⛶ / ✕) via fullscreen.js
+ *  • Lock landscape via orientation.js
+ *  • Bahasa ID/EN via translations.js
+ *  • Exit TIDAK menyimpan record (tanpa localStorage)
+ *  • Difficulty : spawn delay -100ms tiap 10 detik (min 300ms)
+ *
+ *  ═══════════════════════════════════════════════════════════════
+ *  📜 CHANGELOG
+ *  ───────────────────────────────────────────────────────────────
+ *  v1  Pointer follow + tameng 3 lapis
+ *  v2  Tameng 4 lapis (ungu 2 HP) + tembakan tier + kill counter
+ *  v3  Tembakan ke-2 (2 diagonal · 250 DNA + 25 kill · 2.5s)
+ *  v4  Tembakan ke-3 (2 diagonal · 250 DNA + 35 kill · 1.5s)
+ *  v5  Tembakan ke-4 (4 fan-spread · 300 DNA + 300 kill · 1.0s) ← NOW
+ * ═══════════════════════════════════════════════════════════════
+ */
+
 import { fullscreenManager } from '../utils/fullscreen.js';
 import { getLang, getCurrentLang } from '../utils/translations.js';
 
