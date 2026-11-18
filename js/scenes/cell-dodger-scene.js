@@ -9,8 +9,8 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     init(data) {
-        // ✅ KONFIGURASI ENDLESS MODE
-        this.maxHP = 5;
+        // ✅ KONFIGURASI ENDLESS MODE (KODE LAMA DIPULIHKAN)
+        this.maxHP = 500;
         this.playerHP = 5; // Tetap 5 untuk testing UI Game Over
         this.dna = 0;
         this.survivalTime = 0;
@@ -24,7 +24,12 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.lblTime = isID ? 'Waktu' : 'Time';
         this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit';
 
-        // ✅ VARIABEL TAMENG BERLAPIS (3 LEVEL) - DIPERTAHANKAN UTUH
+        // ==========================================
+        // ✅ VARIABEL TAMENG BERLAPIS (3 LEVEL) - PROGRESI PERTAMA
+        //    • DNA 20 → Tameng 1 (Cyan)
+        //    • DNA 40 → Tameng 2 (Kuning)
+        //    • DNA 60 → Tameng 3 (Hijau)
+        // ==========================================
         this.shieldLevel = 0; // 0 = tidak ada, 1 = cyan, 2 = kuning, 3 = hijau
         this.shieldGraphics = null;
         this.nextShieldMilestone = 20; // Target DNA pertama
@@ -37,19 +42,21 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.deadZone = 5;           // radius berhenti dalam pixel
 
         // ==========================================
-        // ✅ VARIABEL PENEMBAKAN (MODE TESTING: UNLOCK LANGSUNG)
-        //    Sistem 3 TIER:
-        //    • Tier 1 = 1.0 detik (awal)
+        // ✅ VARIABEL PENEMBAKAN - PROGRESI KEDUA (AFTER TAMENG)
+        //    Unlock tembakan di DNA 80 (setelah tameng penuh di 60)
+        //    Sistem 3 TIER (naik via kill count):
+        //    • Tier 1 = 1.0 detik (saat unlock)
         //    • Tier 2 = 0.5 detik (setelah 2 kill)
         //    • Tier 3 = 0.3 detik (setelah 3 kill lagi)
         // ==========================================
-        this.hasShootingUpgrade = true; // ✅ LANGSUNG AKTIF dari awal (testing)
+        this.hasShootingUpgrade = false;     // ❌ BELUM AKTIF - harus kumpul DNA 80 dulu
+        this.shootUnlockDNA = 80;            // Ambang unlock tembakan
         this.lastShootTime = 0;
-        this.shootTiers = [1000, 500, 300];     // Daftar interval tiap tier (ms)
-        this.shootTierIndex = 0;                // Mulai dari tier 0 (1 detik)
-        this.shootInterval = 1000;              // Interval aktif saat ini
-        this.killsInCurrentTier = 0;            // Counter kill di tier saat ini
-        this.killsNeededForNextTier = [2, 3];   // Tier 0→1 butuh 2 kill, Tier 1→2 butuh 3 kill
+        this.shootTiers = [1000, 500, 300];  // Daftar interval tiap tier (ms)
+        this.shootTierIndex = 0;             // Mulai dari tier 0 (1 detik)
+        this.shootInterval = 1000;           // Interval aktif saat ini
+        this.killsInCurrentTier = 0;         // Counter kill di tier saat ini
+        this.killsNeededForNextTier = [2, 3]; // Tier 0→1 butuh 2 kill, Tier 1→2 butuh 3 kill
 
         // ==========================================
         // ✅ KILL COUNTER BAKTERI (ditampilkan di HUD, reset saat Exit)
@@ -222,7 +229,7 @@ export default class CellDodgerScene extends Phaser.Scene {
     updateHUD() {
         this.timeText.setText(`${this.lblTime}: ${this.survivalTime}s`);
         this.hpText.setText(`HP: ${this.playerHP}/${this.maxHP}`);
-        this.killCountText.setText(`Kills: ${this.bacteriaKillCount}`); // ✅ Update kill count
+        this.killCountText.setText(`Kills: ${this.bacteriaKillCount}`);
         this.dnaText.setText(`DNA: ${this.dna}`);
 
         if (this.playerHP <= 150) this.hpText.setColor('#ff4444');
@@ -255,14 +262,21 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         // ==========================================
-        // ✅ 2. UPDATE TAMENG (3 LAPISAN - DIPERTAHANKAN)
+        // ✅ 2. UPDATE TAMENG (3 LAPISAN)
         // ==========================================
         if (this.shieldLevel > 0 && this.shieldGraphics) {
             this.updateShieldVisuals();
         }
 
         // ==========================================
-        // ✅ 3. SISTEM PENEMBAKAN OTOMATIS (LANGSUNG AKTIF - TESTING)
+        // ✅ 3. CEK UNLOCK TEMBAKAN (DNA 80 - SETELAH TAMENG)
+        // ==========================================
+        if (this.dna >= this.shootUnlockDNA && !this.hasShootingUpgrade) {
+            this.hasShootingUpgrade = true;
+        }
+
+        // ==========================================
+        // ✅ 4. SISTEM PENEMBAKAN OTOMATIS (HANYA JIKA SUDAH UNLOCK)
         // ==========================================
         if (this.hasShootingUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
@@ -339,7 +353,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         dna.destroy();
         this.dna += 10;
 
-        // ✅ LOGIKA MILESTONE TAMENG BERLAPIS (3 LEVEL) - DIPERTAHANKAN
+        // ✅ LOGIKA MILESTONE TAMENG BERLAPIS (3 LEVEL) - KODE LAMA
         if (this.dna >= this.nextShieldMilestone && this.shieldLevel < 3) {
             this.shieldLevel++;
             this.nextShieldMilestone += 20;
@@ -423,7 +437,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         // ✅ INCREMENT KILL COUNTER (ditampilkan di HUD)
         // ==========================================
         this.bacteriaKillCount++;
-        this.updateHUD(); // Update teks "Kills: X" di HUD
+        this.updateHUD();
 
         // ==========================================
         // ✅ LOGIKA UPGRADE TIER TEMBAK (SILENT, TANPA TEKS)
@@ -499,7 +513,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.gameOverMenu.add(title);
 
-        // ✅ Tambahkan kill count di stats game over
+        // ✅ Tampilkan kill count di stats game over
         const stats = this.add.text(width / 2, height / 2 - 40,
             `${this.lblTime}: ${this.survivalTime}s   |   DNA: ${this.dna}   |   Kills: ${this.bacteriaKillCount}`, {
             font: "bold 26px Arial",
@@ -538,20 +552,21 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     doContinue() {
-        // ✅ Reset tameng saat continue
+        // ✅ Reset tameng saat continue (LOGIKA LAMA DIPERTAHANKAN)
         this.shieldLevel = 0;
         if (this.shieldGraphics) {
             this.shieldGraphics.destroy();
             this.shieldGraphics = null;
         }
 
-        // ✅ Reset sistem tembakan ke Tier 1 (1 detik) untuk testing ulang
+        // ✅ Reset tier tembakan ke Tier 1 (1 detik)
+        //    Catatan: hasShootingUpgrade TIDAK direset, karena DNA tidak berubah
+        //    (jika DNA >= 80, tembakan tetap aktif di tier 1 setelah resume)
         this.shootTierIndex = 0;
         this.shootInterval = 1000;
         this.killsInCurrentTier = 0;
 
         // ✅ HP penuh lagi, TAPI waktu, DNA, dan KILL COUNT TIDAK reset
-        //    (kill count tetap terkumpul sesuai permintaan)
         this.playerHP = this.maxHP;
         this.isGameOver = false;
 
