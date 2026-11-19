@@ -1,46 +1,4 @@
-/*
- * ═══════════════════════════════════════════════════════════════
- *  EVOCELL — CELL DODGER (Misi 3 · Prokaryotic)
- *  js/scenes/cell-dodger-scene.js
- * ═══════════════════════════════════════════════════════════════
- *
- *  🎮 GAMEPLAY
- *  • Gerak      : Pointer follow (mouse + touch). TANPA WASD/joystick.
- *  • Mode       : Endless survival. maxHP = 500, playerHP awal = 5 (test).
- *  • Musuh      : 5 jenis bakteri jatuh dari atas.
- *                 66% tanpa tameng · 20% tameng 1 lapis ·
- *                 10% tameng 2 lapis · 4% tameng 3 lapis.
- *  • Pickup     : DNA coin, +10 per koin.
- *  • Damage     : 1 HP per tabrakan (jika tameng player habis).
- *
- *  🛡️ PROGRESI TAMENG PLAYER (4 LAPISAN)
- *  DNA  20  →  Tameng 1 : Cyan          (1 HP)
- *  DNA  40  →  Tameng 2 : Kuning pucat  (1 HP)
- *  DNA  60  →  Tameng 3 : Hijau terang  (1 HP)
- *  DNA 100  →  Tameng 4 : UNGU TERANG   (2 HP)
- *
- *  🔫 PROGRESI TEMBAKAN PLAYER (4 SISTEM)
- *  DNA  80            →  Tembakan 1 : 1 peluru lurus ke atas
- *  DNA 250 + 25 kill  →  Tembakan 2 : 2 peluru diagonal / 2.5s
- *  DNA 250 + 35 kill  →  Tembakan 3 : 2 peluru diagonal / 1.5s
- *  DNA 300 + 300 kill →  Tembakan 4 : 4 peluru fan-spread / 1.0s
- *
- *  🛡️ TAMENG BAKTERI MUSUH (BERLAPIS, MERAH TERANG)
- *  • Peluang: 20% 1 lapis, 10% 2 lapis, 4% 3 lapis, 66% tanpa tameng.
- *  • Visual : Outline MERAH TERANG. Lapis luar = lingkaran lebih besar.
- *  • Mekanik: Tiap tembakan hancurkan 1 lapis, bakteri TETAP HIDUP.
- *             Bakteri mati hanya setelah semua lapis habis + 1 tembakan lagi.
- *
- *  💀 KILL COUNTER
- *  • Naik HANYA saat bakteri benar-benar mati (bukan saat tameng pecah).
- *  • RESUME : kill TETAP terkumpul.
- *  • EXIT   : kill RESET ke 0.
- *
- *  ⏸️ PAUSE
- *  • Tombol pause (kanan atas) + ESC + P.
- * ═══════════════════════════════════════════════════════════════
- */
-
+// js/scenes/cell-dodger-scene.js
 import { fullscreenManager } from '../utils/fullscreen.js';
 import { getLang, getCurrentLang } from '../utils/translations.js';
 
@@ -422,65 +380,6 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         obstacle.checkWorldBounds = true;
         obstacle.outOfBoundsKill = true;
-
-        // ==========================================
-        // ✅ LOGIKA TAMENG BAKTERI MUSUH (BERLAPIS)
-        //    20% → 1 lapis | 10% → 2 lapis | 4% → 3 lapis | 66% → tanpa
-        // ==========================================
-        const roll = Math.random();
-        if (roll < 0.20) {
-            obstacle.shieldHP = 1;   // 20%
-        } else if (roll < 0.30) {
-            obstacle.shieldHP = 2;   // 10%
-        } else if (roll < 0.34) {
-            obstacle.shieldHP = 3;   // 4%
-        } else {
-            obstacle.shieldHP = 0;   // 66%
-        }
-
-        if (obstacle.shieldHP > 0) {
-            obstacle.shieldGraphic = this.add.graphics();
-            obstacle.shieldGraphic.setDepth(obstacle.depth);
-            this.drawEnemyShield(obstacle);
-
-            // ✅ Hapus graphic otomatis saat bakteri hancur (mencegah memory leak)
-            obstacle.on('destroy', () => {
-                if (obstacle.shieldGraphic) {
-                    obstacle.shieldGraphic.destroy();
-                    obstacle.shieldGraphic = null;
-                }
-            });
-        }
-    }
-
-    // ==========================================
-    // ✅ GAMBAR VISUAL TAMENG BAKTERI (1-3 LAPIS, MERAH TERANG)
-    // ==========================================
-    drawEnemyShield(obstacle) {
-        if (!obstacle.shieldGraphic) return;
-
-        obstacle.shieldGraphic.clear();
-
-        // Radius dasar mengikuti ukuran sprite bakteri
-        const innerRadius = (obstacle.width / 2) * obstacle.scaleX + 8;
-
-        // --- LAPIS 1 (DALAM) ---
-        if (obstacle.shieldHP >= 1) {
-            obstacle.shieldGraphic.lineStyle(3, 0xff0000, 1.0);
-            obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius);
-        }
-
-        // --- LAPIS 2 (TENGAH) ---
-        if (obstacle.shieldHP >= 2) {
-            obstacle.shieldGraphic.lineStyle(3, 0xff0000, 0.75);
-            obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius + 12);
-        }
-
-        // --- LAPIS 3 (LUAR) ---
-        if (obstacle.shieldHP >= 3) {
-            obstacle.shieldGraphic.lineStyle(3, 0xff0000, 0.5);
-            obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius + 24);
-        }
     }
 
     spawnDNA() {
