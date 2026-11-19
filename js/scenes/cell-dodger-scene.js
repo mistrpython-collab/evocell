@@ -1,5 +1,3 @@
-// js/scenes/cell-dodger-scene.js
-
 /*
  * ═══════════════════════════════════════════════════════════════
  *  EVOCELL — CELL DODGER (Misi 3 · Prokaryotic)
@@ -7,62 +5,38 @@
  * ═══════════════════════════════════════════════════════════════
  *
  *  🎮 GAMEPLAY
- *  ─────────────────────────────────────────────────────────────
  *  • Gerak      : Pointer follow (mouse + touch). TANPA WASD/joystick.
  *  • Mode       : Endless survival. maxHP = 500, playerHP awal = 5 (test).
- *  • Musuh      : 5 jenis bakteri jatuh dari atas (bacteria, batang,
- *                 spiral, rantai, bulat).
+ *  • Musuh      : 5 jenis bakteri jatuh dari atas.
+ *                 40% tanpa tameng · 40% tameng 1 lapis · 20% tameng 2 lapis.
  *  • Pickup     : DNA coin, +10 per koin.
- *  • Damage     : 1 HP per tabrakan (jika tameng habis).
+ *  • Damage     : 1 HP per tabrakan (jika tameng player habis).
  *
- *  🛡️ PROGRESI TAMENG (4 LAPISAN)
- *  ─────────────────────────────────────────────────────────────
+ *  🛡️ PROGRESI TAMENG PLAYER (4 LAPISAN)
  *  DNA  20  →  Tameng 1 : Cyan          (1 HP)
  *  DNA  40  →  Tameng 2 : Kuning pucat  (1 HP)
  *  DNA  60  →  Tameng 3 : Hijau terang  (1 HP)
- *  DNA 100  →  Tameng 4 : UNGU TERANG   (2 HP) ← tahan 2x tabrak
- *                  · visual meredup saat sisa 1 HP (feedback)
- *                  · sengaja di 100 (bukan 80) agar tembakan (80)
- *                    muncul DULU, baru tameng ke-4 menyusul
+ *  DNA 100  →  Tameng 4 : UNGU TERANG   (2 HP)
  *
- *  🔫 PROGRESI TEMBAKAN (4 SISTEM)
- *  ─────────────────────────────────────────────────────────────
+ *  🔫 PROGRESI TEMBAKAN PLAYER (4 SISTEM)
  *  DNA  80            →  Tembakan 1 : 1 peluru lurus ke atas
- *                          · tier kecepatan via kill count:
- *                              +2 kill → 1.0s → 0.5s
- *                              +3 kill → 0.5s → 0.3s  (MAX)
- *  DNA 250 + 25 kill  →  Tembakan 2 : 2 peluru diagonal (±35°) / 2.5s
- *  DNA 250 + 35 kill  →  Tembakan 3 : 2 peluru diagonal (±35°) / 1.5s
- *  DNA 300 + 300 kill →  Tembakan 4 : 4 peluru fan-spread      / 1.0s
- *                          (kiri-luar, kiri-dalam, kanan-dalam, kanan-luar)
- *  Warna peluru : Tembakan 1 = Kuning outline Hijau
- *                 Tembakan 2/3/4 = Cyan outline Biru (identik)
- *  Catatan : upgrade tembakan berjalan SILENT (tanpa teks notifikasi)
+ *  DNA 250 + 25 kill  →  Tembakan 2 : 2 peluru diagonal / 2.5s
+ *  DNA 250 + 35 kill  →  Tembakan 3 : 2 peluru diagonal / 1.5s
+ *  DNA 300 + 300 kill →  Tembakan 4 : 4 peluru fan-spread / 1.0s
+ *
+ *  🛡️ TAMENG BAKTERI MUSUH (BERLAPIS)
+ *  • Peluang: 40% 1 lapis, 20% 2 lapis, 40% tanpa tameng.
+ *  • Visual : Outline biru terang (Cyan). Lapis 2 = lingkaran di luar lapis 1.
+ *  • Mekanik: Tiap tembakan hancurkan 1 lapis, bakteri TETAP HIDUP.
+ *             Bakteri mati hanya setelah semua lapis habis + 1 tembakan lagi.
  *
  *  💀 KILL COUNTER
- *  ─────────────────────────────────────────────────────────────
- *  • Naik tiap peluru membunuh bakteri (semua 4 sistem dihitung)
- *  • Tampil di HUD kiri (di bawah HP) & di layar Game Over
- *  • RESUME (kalah → lanjut) : kill TETAP terkumpul
- *  • EXIT (pause / game over) : kill RESET ke 0
+ *  • Naik HANYA saat bakteri benar-benar mati (bukan saat tameng pecah).
+ *  • RESUME : kill TETAP terkumpul.
+ *  • EXIT   : kill RESET ke 0.
  *
- *  ⚙️ SISTEM PENDUKUNG
- *  ─────────────────────────────────────────────────────────────
- *  • Pause menu (ESC / tombol) : Resume & Exit
- *  • Fullscreen toggle (⛶ / ✕) via fullscreen.js
- *  • Lock landscape via orientation.js
- *  • Bahasa ID/EN via translations.js
- *  • Exit TIDAK menyimpan record (tanpa localStorage)
- *  • Difficulty : spawn delay -100ms tiap 10 detik (min 300ms)
- *
- *  ═══════════════════════════════════════════════════════════════
- *  📜 CHANGELOG
- *  ───────────────────────────────────────────────────────────────
- *  v1  Pointer follow + tameng 3 lapis
- *  v2  Tameng 4 lapis (ungu 2 HP) + tembakan tier + kill counter
- *  v3  Tembakan ke-2 (2 diagonal · 250 DNA + 25 kill · 2.5s)
- *  v4  Tembakan ke-3 (2 diagonal · 250 DNA + 35 kill · 1.5s)
- *  v5  Tembakan ke-4 (4 fan-spread · 300 DNA + 300 kill · 1.0s) ← NOW
+ *  ⏸️ PAUSE
+ *  • Tombol pause (kanan atas) + ESC + P.
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -92,11 +66,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.lblQuitHint = isID ? 'Untuk keluar: Pause → Exit' : 'To quit: Pause → Exit';
 
         // ==========================================
-        // ✅ VARIABEL TAMENG BERLAPIS (4 LEVEL)
-        //    • DNA 20 → Tameng 1 (Cyan, 1 HP)
-        //    • DNA 40 → Tameng 2 (Kuning, 1 HP)
-        //    • DNA 60 → Tameng 3 (Hijau, 1 HP)
-        //    • DNA 100 → Tameng 4 (Ungu Terang, 2 HP)
+        // ✅ VARIABEL TAMENG BERLAPIS PLAYER (4 LEVEL)
         // ==========================================
         this.shieldLevel = 0;
         this.shieldGraphics = null;
@@ -112,7 +82,6 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ VARIABEL PENEMBAKAN UTAMA (1 ARAH KE ATAS)
-        //    Unlock DNA 80. Tier via kill: 1.0s → 0.5s → 0.3s
         // ==========================================
         this.hasShootingUpgrade = false;
         this.shootUnlockDNA = 80;
@@ -125,7 +94,6 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ VARIABEL PENEMBAKAN KE-2 (DUA ARAH DIAGONAL)
-        //    Unlock: DNA 250 DAN kill 25. Interval: 2.5 detik
         // ==========================================
         this.hasDualShotUpgrade = false;
         this.dualShotUnlockDNA = 250;
@@ -135,7 +103,6 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ VARIABEL PENEMBAKAN KE-3 (DUA ARAH DIAGONAL, LEBIH CEPAT)
-        //    Unlock: DNA 250 DAN kill 35. Interval: 1.5 detik
         // ==========================================
         this.hasAdvancedShotUpgrade = false;
         this.advancedShotUnlockDNA = 250;
@@ -144,8 +111,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.advancedShotInterval = 1500;
 
         // ==========================================
-        // ✅ VARIABEL PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR) BARU
-        //    Unlock: DNA 300 DAN kill 300. Interval: 1.0 detik
+        // ✅ VARIABEL PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR)
         // ==========================================
         this.hasQuadShotUpgrade = false;
         this.quadShotUnlockDNA = 300;
@@ -201,7 +167,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         bulletGraphics.generateTexture('bulletYellowGreen', 20, 20);
         bulletGraphics.destroy();
 
-        // ✅ TEKSTUR PELURU KE-2, KE-3 & KE-4 (Cyan outline Biru) - dipakai bersama
+        // ✅ TEKSTUR PELURU KE-2, KE-3 & KE-4 (Cyan outline Biru)
         const dualGraphics = this.add.graphics();
         dualGraphics.lineStyle(3, 0x0066ff, 1);
         dualGraphics.fillStyle(0x00ffff, 1);
@@ -246,7 +212,9 @@ export default class CellDodgerScene extends Phaser.Scene {
             this.targetY = pointer.y;
         });
 
+        // ✅ ESC dan P untuk pause
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
+        this.input.keyboard.on('keydown-P', () => this.togglePause());
 
         const instrText = this.isID
             ? '🖱️ Gerakkan mouse / jari untuk mengikuti sel'
@@ -342,48 +310,40 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
 
         // ==========================================
-        // ✅ 2. UPDATE TAMENG (4 LAPISAN)
+        // ✅ 2. UPDATE TAMENG PLAYER (4 LAPISAN)
         // ==========================================
         if (this.shieldLevel > 0 && this.shieldGraphics) {
             this.updateShieldVisuals();
         }
 
         // ==========================================
-        // ✅ 3. CEK UNLOCK TEMBAKAN UTAMA (DNA 80)
+        // ✅ 3. UPDATE POSISI TAMENG BAKTERI MUSUH
+        // ==========================================
+        this.obstacles.children.iterate((obs) => {
+            if (obs && obs.active && obs.shieldHP > 0 && obs.shieldGraphic) {
+                obs.shieldGraphic.x = obs.x;
+                obs.shieldGraphic.y = obs.y;
+            }
+        });
+
+        // ==========================================
+        // ✅ 4. CEK UNLOCK TEMBAKAN (SEMUA TIER)
         // ==========================================
         if (this.dna >= this.shootUnlockDNA && !this.hasShootingUpgrade) {
             this.hasShootingUpgrade = true;
         }
-
-        // ==========================================
-        // ✅ 4. CEK UNLOCK TEMBAKAN KE-2 (DNA 250 + 25 KILL)
-        // ==========================================
-        if (this.dna >= this.dualShotUnlockDNA &&
-            this.bacteriaKillCount >= this.dualShotUnlockKills &&
-            !this.hasDualShotUpgrade) {
+        if (this.dna >= this.dualShotUnlockDNA && this.bacteriaKillCount >= this.dualShotUnlockKills && !this.hasDualShotUpgrade) {
             this.hasDualShotUpgrade = true;
         }
-
-        // ==========================================
-        // ✅ 5. CEK UNLOCK TEMBAKAN KE-3 (DNA 250 + 35 KILL)
-        // ==========================================
-        if (this.dna >= this.advancedShotUnlockDNA &&
-            this.bacteriaKillCount >= this.advancedShotUnlockKills &&
-            !this.hasAdvancedShotUpgrade) {
+        if (this.dna >= this.advancedShotUnlockDNA && this.bacteriaKillCount >= this.advancedShotUnlockKills && !this.hasAdvancedShotUpgrade) {
             this.hasAdvancedShotUpgrade = true;
         }
-
-        // ==========================================
-        // ✅ 6. CEK UNLOCK TEMBAKAN KE-4 (DNA 300 + 300 KILL) BARU
-        // ==========================================
-        if (this.dna >= this.quadShotUnlockDNA &&
-            this.bacteriaKillCount >= this.quadShotUnlockKills &&
-            !this.hasQuadShotUpgrade) {
+        if (this.dna >= this.quadShotUnlockDNA && this.bacteriaKillCount >= this.quadShotUnlockKills && !this.hasQuadShotUpgrade) {
             this.hasQuadShotUpgrade = true;
         }
 
         // ==========================================
-        // ✅ 7. SISTEM PENEMBAKAN UTAMA (1 ARAH KE ATAS)
+        // ✅ 5. SISTEM PENEMBAKAN (4 TIPE)
         // ==========================================
         if (this.hasShootingUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
@@ -392,10 +352,6 @@ export default class CellDodgerScene extends Phaser.Scene {
                 this.lastShootTime = currentTime;
             }
         }
-
-        // ==========================================
-        // ✅ 8. SISTEM PENEMBAKAN KE-2 (DUA ARAH DIAGONAL, 2.5s)
-        // ==========================================
         if (this.hasDualShotUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
             if (currentTime - this.lastDualShotTime >= this.dualShotInterval) {
@@ -403,10 +359,6 @@ export default class CellDodgerScene extends Phaser.Scene {
                 this.lastDualShotTime = currentTime;
             }
         }
-
-        // ==========================================
-        // ✅ 9. SISTEM PENEMBAKAN KE-3 (DUA ARAH DIAGONAL, 1.5s)
-        // ==========================================
         if (this.hasAdvancedShotUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
             if (currentTime - this.lastAdvancedShotTime >= this.advancedShotInterval) {
@@ -414,10 +366,6 @@ export default class CellDodgerScene extends Phaser.Scene {
                 this.lastAdvancedShotTime = currentTime;
             }
         }
-
-        // ==========================================
-        // ✅ 10. SISTEM PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR, 1.0s) BARU
-        // ==========================================
         if (this.hasQuadShotUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
             if (currentTime - this.lastQuadShotTime >= this.quadShotInterval) {
@@ -426,11 +374,10 @@ export default class CellDodgerScene extends Phaser.Scene {
             }
         }
 
-        // Cleanup peluru yang keluar layar (atas, kiri, kanan)
+        // Cleanup peluru yang keluar layar
         const camW = this.cameras.main.width;
         this.projectiles.children.iterate((bullet) => {
-            if (bullet && bullet.active &&
-                (bullet.y < -50 || bullet.x < -50 || bullet.x > camW + 50)) {
+            if (bullet && bullet.active && (bullet.y < -50 || bullet.x < -50 || bullet.x > camW + 50)) {
                 bullet.destroy();
             }
         });
@@ -474,6 +421,57 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         obstacle.checkWorldBounds = true;
         obstacle.outOfBoundsKill = true;
+
+        // ==========================================
+        // ✅ LOGIKA TAMENG BAKTERI MUSUH (BERLAPIS)
+        //    40% → 1 lapis | 20% → 2 lapis | 40% → tanpa tameng
+        // ==========================================
+        const roll = Math.random();
+        if (roll < 0.40) {
+            obstacle.shieldHP = 1;   // 40%
+        } else if (roll < 0.60) {
+            obstacle.shieldHP = 2;   // 20%
+        } else {
+            obstacle.shieldHP = 0;   // 40%
+        }
+
+        if (obstacle.shieldHP > 0) {
+            obstacle.shieldGraphic = this.add.graphics();
+            obstacle.shieldGraphic.setDepth(obstacle.depth);
+            this.drawEnemyShield(obstacle);
+
+            // ✅ Hapus graphic otomatis saat bakteri hancur (mencegah memory leak)
+            obstacle.on('destroy', () => {
+                if (obstacle.shieldGraphic) {
+                    obstacle.shieldGraphic.destroy();
+                    obstacle.shieldGraphic = null;
+                }
+            });
+        }
+    }
+
+    // ==========================================
+    // ✅ GAMBAR VISUAL TAMENG BAKTERI (1 atau 2 LAPIS)
+    // ==========================================
+    drawEnemyShield(obstacle) {
+        if (!obstacle.shieldGraphic) return;
+
+        obstacle.shieldGraphic.clear();
+
+        // Radius dasar mengikuti ukuran sprite bakteri
+        const innerRadius = (obstacle.width / 2) * obstacle.scaleX + 8;
+
+        // --- LAPIS 1 (DALAM) ---
+        if (obstacle.shieldHP >= 1) {
+            obstacle.shieldGraphic.lineStyle(3, 0x00ffff, 1.0);
+            obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius);
+        }
+
+        // --- LAPIS 2 (LUAR) ---
+        if (obstacle.shieldHP >= 2) {
+            obstacle.shieldGraphic.lineStyle(3, 0x00ffff, 0.7);
+            obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius + 12);
+        }
     }
 
     spawnDNA() {
@@ -495,20 +493,16 @@ export default class CellDodgerScene extends Phaser.Scene {
         dna.destroy();
         this.dna += 10;
 
-        // ✅ LOGIKA MILESTONE TAMENG BERLAPIS (4 LEVEL)
         if (this.dna >= this.nextShieldMilestone && this.shieldLevel < 4) {
             this.shieldLevel++;
-
             if (this.shieldLevel === 4) {
                 this.shield4HP = 2;
             }
-
             if (this.shieldLevel === 3) {
                 this.nextShieldMilestone = 100;
             } else {
                 this.nextShieldMilestone += 20;
             }
-
             this.activateShield();
         }
 
@@ -532,13 +526,11 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.shieldGraphics.x = this.player.x;
         this.shieldGraphics.y = this.player.y;
 
-        // --- TAMENG 1 (DALAM - CYAN) ---
         this.shieldGraphics.fillStyle(0x00ffff, 0.15);
         this.shieldGraphics.fillCircle(0, 0, 55);
         this.shieldGraphics.lineStyle(3, 0x00ffff, 0.8);
         this.shieldGraphics.strokeCircle(0, 0, 55);
 
-        // --- TAMENG 2 (TENGAH - KUNING PUCAT) ---
         if (this.shieldLevel >= 2) {
             this.shieldGraphics.fillStyle(0xffffaa, 0.15);
             this.shieldGraphics.fillCircle(0, 0, 75);
@@ -546,7 +538,6 @@ export default class CellDodgerScene extends Phaser.Scene {
             this.shieldGraphics.strokeCircle(0, 0, 75);
         }
 
-        // --- TAMENG 3 (LUAR - HIJAU TERANG) ---
         if (this.shieldLevel >= 3) {
             this.shieldGraphics.fillStyle(0x00ff00, 0.15);
             this.shieldGraphics.fillCircle(0, 0, 95);
@@ -554,7 +545,6 @@ export default class CellDodgerScene extends Phaser.Scene {
             this.shieldGraphics.strokeCircle(0, 0, 95);
         }
 
-        // --- TAMENG 4 (PALING LUAR - UNGU TERANG, 2 HP) ---
         if (this.shieldLevel >= 4) {
             const fillAlpha = this.shield4HP === 2 ? 0.2 : 0.08;
             const lineAlpha = this.shield4HP === 2 ? 1.0 : 0.5;
@@ -580,22 +570,13 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.updateShieldVisuals();
     }
 
-    // ==========================================
-    // ✅ TEMBAKAN UTAMA (1 ARAH KE ATAS)
-    // ==========================================
     shoot() {
         const bullet = this.projectiles.create(this.player.x, this.player.y - 30, 'bulletYellowGreen');
         bullet.setDepth(4);
         bullet.setVelocityY(-500);
-
-        this.time.delayedCall(3000, () => {
-            if (bullet.active) bullet.destroy();
-        });
+        this.time.delayedCall(3000, () => { if (bullet.active) bullet.destroy(); });
     }
 
-    // ==========================================
-    // ✅ TEMBAKAN KE-2 (DUA ARAH DIAGONAL, 2.5s)
-    // ==========================================
     shootDual() {
         const speed = 500;
         const angleLeft = -Math.PI / 2 - 0.61;
@@ -613,9 +594,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.time.delayedCall(3000, () => { if (b2.active) b2.destroy(); });
     }
 
-    // ==========================================
-    // ✅ TEMBAKAN KE-3 (DUA ARAH DIAGONAL, 1.5s)
-    // ==========================================
     shootAdvanced() {
         const speed = 500;
         const angleLeft = -Math.PI / 2 - 0.61;
@@ -633,17 +611,13 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.time.delayedCall(3000, () => { if (b2.active) b2.destroy(); });
     }
 
-    // ==========================================
-    // ✅ TEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR, 1.0s) BARU
-    // ==========================================
     shootQuad() {
         const speed = 500;
-        // 4 sudut simetris yang lebih lebar dari tembakan ke-2/3
         const angles = [
-            -Math.PI / 2 - 0.9, // Kiri luar
-            -Math.PI / 2 - 0.3, // Kiri dalam
-            -Math.PI / 2 + 0.3, // Kanan dalam
-            -Math.PI / 2 + 0.9  // Kanan luar
+            -Math.PI / 2 - 0.9,
+            -Math.PI / 2 - 0.3,
+            -Math.PI / 2 + 0.3,
+            -Math.PI / 2 + 0.9
         ];
 
         angles.forEach(angle => {
@@ -655,12 +629,32 @@ export default class CellDodgerScene extends Phaser.Scene {
     }
 
     // ==========================================
-    // ✅ TABRAKAN PELURU → MUSUH (berlaku utk SEMUA peluru)
+    // ✅ TABRAKAN PELURU → MUSUH (DENGAN LOGIKA TAMENG BERLAPIS)
     // ==========================================
     hitObstacleWithBullet(bullet, obstacle) {
         if (!bullet.active || !obstacle.active) return;
 
         bullet.destroy();
+
+        // ✅ CEK APAKAH BAKTERI MASIH PUNYA TAMENG
+        if (obstacle.shieldHP > 0) {
+            // 1. Kurangi 1 lapis tameng
+            obstacle.shieldHP--;
+
+            // 2. Redraw visual (lapisan terluar hilang)
+            this.drawEnemyShield(obstacle);
+
+            // 3. Efek visual: Bakteri berkedip putih sesaat sebagai feedback tameng pecah
+            obstacle.setTint(0xffffff);
+            this.time.delayedCall(100, () => {
+                if (obstacle.active) obstacle.clearTint();
+            });
+
+            // 4. Bakteri TETAP HIDUP, kill count TIDAK bertambah
+            return;
+        }
+
+        // ✅ LOGIKA BIASA (TAMENG HABIS / TIDAK PUNYA TAMENG)
         obstacle.destroy();
 
         this.bacteriaKillCount++;
@@ -776,10 +770,9 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.shootInterval = 1000;
         this.killsInCurrentTier = 0;
 
-        // ✅ Reset timer semua tembakan (status unlock TIDAK direset)
         this.lastDualShotTime = 0;
         this.lastAdvancedShotTime = 0;
-        this.lastQuadShotTime = 0; // ✅ Reset timer tembakan ke-4
+        this.lastQuadShotTime = 0;
 
         this.playerHP = this.maxHP;
         this.isGameOver = false;
