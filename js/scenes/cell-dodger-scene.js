@@ -6,7 +6,7 @@
  *
  *  🎮 GAMEPLAY
  *  • Gerak      : Pointer follow (mouse + touch). TANPA WASD/joystick.
- *  • Mode       : Endless survival. maxHP = 500, playerHP awal = 5 (test).
+ *  • Mode       : Endless survival. maxHP = 500, playerHP = 500 (asli).
  *  • Musuh      : 5 jenis bakteri jatuh dari atas.
  *                 66% tanpa tameng · 20% tameng 1 lapis ·
  *                 10% tameng 2 lapis · 4% tameng 3 lapis.
@@ -39,8 +39,8 @@
  *  ⏸️ PAUSE
  *  • Tombol pause (kanan atas) + ESC + P.
  *
- *  👹 BOSS FIGHT — MIMIVIRUS (TESTING: Trigger DNA 100)
- *  • Muncul saat player mencapai 100 DNA (trigger kill count dikomentari untuk testing).
+ *  👹 BOSS FIGHT — MIMIVIRUS (Trigger: 50 Kill)
+ *  • Muncul saat player membunuh 50 musuh bakteri.
  *  • Spawn dari atas layar (y = -150), BERGERAK TURUN via TWEEN ke atas tengah
  *    (y = 180), lalu mulai PATROL RANDOM di zona atas.
  *  • 🌀 PATROL: boss bergerak acak HANYA di zona atas layar (Y ~90–340,
@@ -76,7 +76,7 @@ export default class CellDodgerScene extends Phaser.Scene {
     init(data) {
         // ✅ KONFIGURASI ENDLESS MODE
         this.maxHP = 500;
-        this.playerHP = 5;
+        this.playerHP = 500; // ✅ DIUBAH: Kembali ke 500 HP aslinya (dari 5)
         this.dna = 0;
         this.survivalTime = 0;
         this.isGameOver = false;
@@ -149,12 +149,12 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.bacteriaKillCount = 0;
 
         // ==========================================
-        // ✅ BOSS FIGHT — MIMIVIRUS (TESTING MODE: DNA 100)
-        //    • bossKillThreshold = jumlah kill untuk trigger boss (default 4, DIKOMENTARI)
+        // ✅ BOSS FIGHT — MIMIVIRUS
+        //    • bossKillThreshold = jumlah kill untuk trigger boss (DIUBAH KE 50)
         //    • bossSpawned = flag agar boss hanya spawn sekali per run
         //    • boss = referensi objek MimivirusBoss
         // ==========================================
-        this.bossKillThreshold = 4;
+        this.bossKillThreshold = 50; // ✅ DIUBAH: Boss muncul setelah 50 kill
         this.bossSpawned = false;
         this.boss = null;
         this.virusDuplicates = [];
@@ -679,10 +679,10 @@ export default class CellDodgerScene extends Phaser.Scene {
         dna.destroy();
         this.dna += 10;
 
-        // ✅ BOSS FIGHT — TRIGGER SPAWN MIMIVIRUS SAAT DNA >= 100 (TESTING)
-        if (!this.bossSpawned && this.dna >= 100) {
-            this.spawnMimivirusBoss();
-        }
+        // ✅ BOSS FIGHT — TRIGGER SPAWN MIMIVIRUS SAAT DNA >= 100 (DIKOMENTARI, AKAN DIPAKAI LAGI)
+        // if (!this.bossSpawned && this.dna >= 100) {
+        //     this.spawnMimivirusBoss();
+        // }
 
         if (this.dna >= this.nextShieldMilestone && this.shieldLevel < 4) {
             this.shieldLevel++;
@@ -842,10 +842,10 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.updateHUD();
 
         // ==========================================
-        // ✅ BOSS FIGHT — CEK TRIGGER SPAWN MIMIVIRUS (DIKOMENTARI UNTUK TESTING DNA)
-        // if (!this.bossSpawned && this.bacteriaKillCount >= this.bossKillThreshold) {
-        //     this.spawnMimivirusBoss();
-        // }
+        // ✅ BOSS FIGHT — CEK TRIGGER SPAWN MIMIVIRUS (AKTIF: 50 KILL)
+        if (!this.bossSpawned && this.bacteriaKillCount >= this.bossKillThreshold) {
+            this.spawnMimivirusBoss();
+        }
         // ==========================================
 
         this.killsInCurrentTier++;
