@@ -38,6 +38,29 @@
  *
  *  ⏸️ PAUSE
  *  • Tombol pause (kanan atas) + ESC + P.
+ *
+ *  👹 BOSS FIGHT — MIMIVIRUS (TESTING: Trigger DNA 100)
+ *  • Muncul saat player mencapai 100 DNA (trigger kill count dikomentari untuk testing).
+ *  • Spawn dari atas layar (y = -150), BERGERAK TURUN via TWEEN ke atas tengah
+ *    (y = 180), lalu mulai PATROL RANDOM di zona atas.
+ *  • 🌀 PATROL: boss bergerak acak HANYA di zona atas layar (Y ~90–340,
+ *    X 120–width-120). TIDAK PERNAH turun ke area sel player di bawah.
+ *  • 🧬 DUPLIKASI REGULER: Setiap 1.2 detik, boss meninggalkan 1 virus mini.
+ *    Virus duplikat punya 2 FASE: IDLE (2 detik) → DASH (kecepatan ~500 px/detik).
+ *    Maksimal 15 duplikat di layar (anti-lag). Auto-destroy 8 detik.
+ *  • 😡 ENRAGE (MENGAMUK): Saat HP boss mencapai 15, boss langsung mengeluarkan
+ *    2 virus duplikat SECARA BERSAMAAN (dengan sedikit offset posisi).
+ *    Trigger ini hanya terjadi 1 kali per fight.
+ *  • ❤️ Boss punya 35 HP → butuh 35 tembakan untuk mati.
+ *  • 💥 EFEK DAMAGE: Setiap kali kena tembakan, boss berkedip MERAH TERANG.
+ *  • 🔄 Musuh & DNA TETAP spawn normal selama boss fight (arena TIDAK dikosongkan).
+ *  • ⚠️ Key texture = 'bossMimivirus' (WAJIB sama dgn boot-scene.js, BUKAN 'mimivirus').
+ *
+ *  📏 HIERARKI UKURAN BOSS (mengikuti sains dunia nyata):
+ *    Mimivirus        → 0.4  (paling kecil)
+ *    Thiomargarita    → 0.8  (nanti)
+ *    Pandoravirus     → 1.0  (nanti)
+ *    Epulo            → 1.5  (paling besar)
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -124,6 +147,21 @@ export default class CellDodgerScene extends Phaser.Scene {
         // ✅ KILL COUNTER
         // ==========================================
         this.bacteriaKillCount = 0;
+
+        // ==========================================
+        // ✅ BOSS FIGHT — MIMIVIRUS (TESTING MODE: DNA 100)
+        //    • bossKillThreshold = jumlah kill untuk trigger boss (default 4, DIKOMENTARI)
+        //    • bossSpawned = flag agar boss hanya spawn sekali per run
+        //    • boss = referensi objek MimivirusBoss
+        // ==========================================
+        this.bossKillThreshold = 4;
+        this.bossSpawned = false;
+        this.boss = null;
+        this.virusDuplicates = [];
+        this.lastVirusSpawnTime = 0;
+        this.virusSpawnInterval = 1200;
+        this.maxVirusDuplicates = 15;
+        this.bossEnrageTriggered = false;
     }
 
     create(data){
@@ -159,7 +197,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.dnaItems = this.physics.add.group();
         this.projectiles = this.physics.add.group();
 
-        // ✅ TEKSTUR PELURU UTAMA (Kuning outline Hijau)
         const bulletGraphics = this.add.graphics();
         bulletGraphics.lineStyle(3, 0x00ff00, 1);
         bulletGraphics.fillStyle(0xffff00, 1);
@@ -168,7 +205,6 @@ export default class CellDodgerScene extends Phaser.Scene {
         bulletGraphics.generateTexture('bulletYellowGreen', 20, 20);
         bulletGraphics.destroy();
 
-        // ✅ TEKSTUR PELURU KE-2, KE-3 & KE-4 (Cyan outline Biru)
         const dualGraphics = this.add.graphics();
         dualGraphics.lineStyle(3, 0x0066ff, 1);
         dualGraphics.fillStyle(0x00ffff, 1);
@@ -213,7 +249,6 @@ export default class CellDodgerScene extends Phaser.Scene {
             this.targetY = pointer.y;
         });
 
-        // ✅ ESC dan P untuk pause
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         this.input.keyboard.on('keydown-P', () => this.togglePause());
 
@@ -383,6 +418,21 @@ export default class CellDodgerScene extends Phaser.Scene {
             }
         });
 
+        // ==========================================
+        // ✅ 6. BOSS FIGHT — CEK PELURU MENGENA BOSS
+        // ==========================================
+        this.checkBossCollision();
+
+        // ==========================================
+        // ✅ 7. BOSS FIGHT — DUPLIKASI VIRUS (setiap 1.2 detik)
+        // ==========================================
+        this.spawnVirusDuplicate();
+
+        // ==========================================
+        // ✅ 8. BOSS FIGHT — CEK TABRAKAN PLAYER vs VIRUS DUPLIKAT
+        // ==========================================
+        this.checkVirusCollision();
+
         // Difficulty scaling
         this.difficultyTimer++;
         if (this.difficultyTimer % 600 === 0) {
@@ -423,19 +473,15 @@ export default class CellDodgerScene extends Phaser.Scene {
         obstacle.checkWorldBounds = true;
         obstacle.outOfBoundsKill = true;
 
-        // ==========================================
-        // ✅ LOGIKA TAMENG BAKTERI MUSUH (BERLAPIS)
-        //    20% → 1 lapis | 10% → 2 lapis | 4% → 3 lapis | 66% → tanpa
-        // ==========================================
         const roll = Math.random();
         if (roll < 0.20) {
-            obstacle.shieldHP = 1;   // 20%
+            obstacle.shieldHP = 1;
         } else if (roll < 0.30) {
-            obstacle.shieldHP = 2;   // 10%
+            obstacle.shieldHP = 2;
         } else if (roll < 0.34) {
-            obstacle.shieldHP = 3;   // 4%
+            obstacle.shieldHP = 3;
         } else {
-            obstacle.shieldHP = 0;   // 66%
+            obstacle.shieldHP = 0;
         }
 
         if (obstacle.shieldHP > 0) {
@@ -443,7 +489,6 @@ export default class CellDodgerScene extends Phaser.Scene {
             obstacle.shieldGraphic.setDepth(obstacle.depth);
             this.drawEnemyShield(obstacle);
 
-            // ✅ Hapus graphic otomatis saat bakteri hancur (mencegah memory leak)
             obstacle.on('destroy', () => {
                 if (obstacle.shieldGraphic) {
                     obstacle.shieldGraphic.destroy();
@@ -453,34 +498,166 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
     }
 
-    // ==========================================
-    // ✅ GAMBAR VISUAL TAMENG BAKTERI (1-3 LAPIS, MERAH TERANG)
-    // ==========================================
     drawEnemyShield(obstacle) {
         if (!obstacle.shieldGraphic) return;
 
         obstacle.shieldGraphic.clear();
 
-        // Radius dasar mengikuti ukuran sprite bakteri
         const innerRadius = (obstacle.width / 2) * obstacle.scaleX + 8;
 
-        // --- LAPIS 1 (DALAM) ---
         if (obstacle.shieldHP >= 1) {
             obstacle.shieldGraphic.lineStyle(3, 0xff0000, 1.0);
             obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius);
         }
 
-        // --- LAPIS 2 (TENGAH) ---
         if (obstacle.shieldHP >= 2) {
             obstacle.shieldGraphic.lineStyle(3, 0xff0000, 0.75);
             obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius + 12);
         }
 
-        // --- LAPIS 3 (LUAR) ---
         if (obstacle.shieldHP >= 3) {
             obstacle.shieldGraphic.lineStyle(3, 0xff0000, 0.5);
             obstacle.shieldGraphic.strokeCircle(0, 0, innerRadius + 24);
         }
+    }
+
+    spawnMimivirusBoss() {
+        if (this.bossSpawned) return;
+        this.bossSpawned = true;
+
+        const width = this.cameras.main.width;
+
+        this.boss = new MimivirusBoss(this, width / 2, -150, width / 2, 180);
+    }
+
+    checkBossCollision() {
+        if (!this.boss || !this.boss.active) return;
+
+        const bossRadius = (this.boss.displayWidth / 2) + 12;
+        let gotHit = false;
+
+        this.projectiles.children.iterate((bullet) => {
+            if (gotHit) return;
+            if (!bullet.active) return;
+
+            const dx = bullet.x - this.boss.x;
+            const dy = bullet.y - this.boss.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < bossRadius) {
+                bullet.destroy();
+                gotHit = true;
+            }
+        });
+
+        if (gotHit) {
+            this.boss.hp--;
+
+            this.boss.setTint(0xff0000);
+            this.time.delayedCall(120, () => {
+                if (this.boss && this.boss.active) this.boss.clearTint();
+            });
+
+            // ✅ ENRAGE MECHANIC: Saat HP mencapai 15, spawn 2 duplikat sekaligus
+            if (this.boss.hp === 15 && !this.bossEnrageTriggered) {
+                this.bossEnrageTriggered = true;
+                console.log('👹 BOSS FIGHT: Mimivirus ENRAGED! Spawning 2 duplicates simultaneously!');
+
+                const dup1 = new VirusDuplicate(this, this.boss.x - 15, this.boss.y);
+                const dup2 = new VirusDuplicate(this, this.boss.x + 15, this.boss.y);
+
+                this.virusDuplicates.push(dup1, dup2);
+            }
+
+            if (this.boss.hp <= 0) {
+                this.endBossFight();
+            }
+        }
+    }
+
+    spawnVirusDuplicate() {
+        if (!this.boss || !this.boss.active || !this.boss.arrived) return;
+
+        const currentTime = this.time.now;
+
+        if (currentTime - this.lastVirusSpawnTime < this.virusSpawnInterval) return;
+        if (this.virusDuplicates.length >= this.maxVirusDuplicates) return;
+
+        this.lastVirusSpawnTime = currentTime;
+
+        const duplicate = new VirusDuplicate(this, this.boss.x, this.boss.y);
+        this.virusDuplicates.push(duplicate);
+    }
+
+    checkVirusCollision() {
+        if (this.virusDuplicates.length === 0) return;
+
+        const playerRadius = (this.player.displayWidth / 2);
+
+        for (let i = this.virusDuplicates.length - 1; i >= 0; i--) {
+            const dup = this.virusDuplicates[i];
+            if (!dup || !dup.active) {
+                this.virusDuplicates.splice(i, 1);
+                continue;
+            }
+
+            const dx = this.player.x - dup.x;
+            const dy = this.player.y - dup.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < playerRadius + (dup.displayWidth / 2)) {
+                this.playerHP = Math.max(0, this.playerHP - 1);
+                this.updateHUD();
+
+                this.player.setTint(0xff0000);
+                this.time.delayedCall(200, () => {
+                    if (this.player.active) this.player.clearTint();
+                });
+
+                dup.destroy();
+                this.virusDuplicates.splice(i, 1);
+
+                if (this.playerHP <= 0) {
+                    this.showContinueScreen();
+                }
+            }
+        }
+
+        this.projectiles.children.iterate((bullet) => {
+            if (!bullet || !bullet.active) return;
+
+            for (let i = this.virusDuplicates.length - 1; i >= 0; i--) {
+                const dup = this.virusDuplicates[i];
+                if (!dup || !dup.active) continue;
+
+                const dx = bullet.x - dup.x;
+                const dy = bullet.y - dup.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const dupRadius = (dup.displayWidth / 2) + 8;
+
+                if (dist < dupRadius) {
+                    bullet.destroy();
+                    dup.destroy();
+                    this.virusDuplicates.splice(i, 1);
+                    break;
+                }
+            }
+        });
+    }
+
+    endBossFight() {
+        if (this.boss) {
+            this.tweens.killTweensOf(this.boss);
+            this.boss.destroy();
+            this.boss = null;
+        }
+
+        this.virusDuplicates.forEach(dup => {
+            if (dup && dup.active) dup.destroy();
+        });
+        this.virusDuplicates = [];
+
+        console.log('👹 BOSS FIGHT: Mimivirus defeated!');
     }
 
     spawnDNA() {
@@ -501,6 +678,11 @@ export default class CellDodgerScene extends Phaser.Scene {
         if (this.isGameOver || !dna.active) return;
         dna.destroy();
         this.dna += 10;
+
+        // ✅ BOSS FIGHT — TRIGGER SPAWN MIMIVIRUS SAAT DNA >= 100 (TESTING)
+        if (!this.bossSpawned && this.dna >= 100) {
+            this.spawnMimivirusBoss();
+        }
 
         if (this.dna >= this.nextShieldMilestone && this.shieldLevel < 4) {
             this.shieldLevel++;
@@ -637,37 +819,34 @@ export default class CellDodgerScene extends Phaser.Scene {
         });
     }
 
-    // ==========================================
-    // ✅ TABRAKAN PELURU → MUSUH (DENGAN LOGIKA TAMENG BERLAPIS)
-    // ==========================================
     hitObstacleWithBullet(bullet, obstacle) {
         if (!bullet.active || !obstacle.active) return;
 
         bullet.destroy();
 
-        // ✅ CEK APAKAH BAKTERI MASIH PUNYA TAMENG
         if (obstacle.shieldHP > 0) {
-            // 1. Kurangi 1 lapis tameng
             obstacle.shieldHP--;
-
-            // 2. Redraw visual (lapisan terluar hilang)
             this.drawEnemyShield(obstacle);
 
-            // 3. Efek visual: Bakteri berkedip putih sesaat sebagai feedback tameng pecah
             obstacle.setTint(0xffffff);
             this.time.delayedCall(100, () => {
                 if (obstacle.active) obstacle.clearTint();
             });
 
-            // 4. Bakteri TETAP HIDUP, kill count TIDAK bertambah
             return;
         }
 
-        // ✅ LOGIKA BIASA (TAMENG HABIS / TIDAK PUNYA TAMENG)
         obstacle.destroy();
 
         this.bacteriaKillCount++;
         this.updateHUD();
+
+        // ==========================================
+        // ✅ BOSS FIGHT — CEK TRIGGER SPAWN MIMIVIRUS (DIKOMENTARI UNTUK TESTING DNA)
+        // if (!this.bossSpawned && this.bacteriaKillCount >= this.bossKillThreshold) {
+        //     this.spawnMimivirusBoss();
+        // }
+        // ==========================================
 
         this.killsInCurrentTier++;
         if (this.shootTierIndex < this.shootTiers.length - 1) {
@@ -782,6 +961,21 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.lastDualShotTime = 0;
         this.lastAdvancedShotTime = 0;
         this.lastQuadShotTime = 0;
+
+        this.bossSpawned = false;
+        this.bossEnrageTriggered = false;
+
+        if (this.boss) {
+            this.tweens.killTweensOf(this.boss);
+            this.boss.destroy();
+            this.boss = null;
+        }
+
+        this.virusDuplicates.forEach(dup => {
+            if (dup && dup.active) dup.destroy();
+        });
+        this.virusDuplicates = [];
+        this.lastVirusSpawnTime = 0;
 
         this.playerHP = this.maxHP;
         this.isGameOver = false;
@@ -925,5 +1119,178 @@ export default class CellDodgerScene extends Phaser.Scene {
             });
         }
     }
-    
 }
+
+// =================================================================
+// ✅ BOSS FIGHT — CLASS MIMIVIRUS
+// =================================================================
+class MimivirusBoss extends Phaser.GameObjects.Image {
+    constructor(scene, startX, startY, targetX, targetY) {
+        super(scene, startX, startY, 'bossMimivirus');
+        scene.add.existing(this);
+
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.arrived = false;
+
+        // ❤️ HP BOSS = 35 (butuh 35 tembakan untuk mati)
+        this.hp = 35;
+        this.maxHp = 35;
+
+        this.patrolSpeed = 260;
+        this.patrolMinX = 120;
+        this.patrolMinY = 90;
+        this.patrolMaxY = 340;
+
+        this.setScale(0.4);
+        this.setDepth(20);
+
+        scene.tweens.add({
+            targets: this,
+            y: this.targetY,
+            x: this.targetX,
+            duration: 1500,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.arrived = true;
+                console.log('👹 BOSS FIGHT: Mimivirus arrived → mulai patrol');
+                this.patrolMove();
+            }
+        });
+
+        console.log('👹 BOSS FIGHT: Mimivirus spawned!');
+    }
+
+    patrolMove() {
+        if (!this.active) return;
+
+        const camW = this.scene.cameras.main.width;
+        const camH = this.scene.cameras.main.height;
+
+        const minX = this.patrolMinX;
+        const maxX = camW - this.patrolMinX;
+        const minY = this.patrolMinY;
+        const maxY = Math.min(this.patrolMaxY, camH * 0.45);
+
+        const nextX = Phaser.Math.Between(minX, maxX);
+        const nextY = Phaser.Math.Between(minY, maxY);
+
+        const dx = nextX - this.x;
+        const dy = nextY - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const duration = Math.max(400, (dist / this.patrolSpeed) * 1000);
+
+        this.scene.tweens.add({
+            targets: this,
+            x: nextX,
+            y: nextY,
+            duration: duration,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                if (this.active) this.patrolMove();
+            }
+        });
+    }
+}
+// =================================================================
+
+// =================================================================
+// ✅ BOSS FIGHT — CLASS VIRUS DUPLICATE (IDLE → DASH)
+// =================================================================
+class VirusDuplicate extends Phaser.GameObjects.Image {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'bossMimivirus');
+        scene.add.existing(this);
+
+        this.hp = 1;
+
+        this.state = 'idle';
+        this.idleDuration = 2000;
+        this.dashSpeed = 500;
+
+        this.setScale(0.2);
+        this.setDepth(15);
+        this.setTint(0x8844ff);
+
+        this.setAlpha(0);
+        scene.tweens.add({
+            targets: this,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+
+        this.idleTimer = scene.time.delayedCall(this.idleDuration, () => {
+            if (this.active) {
+                this.startDash();
+            }
+        });
+
+        this.lifetimeTimer = scene.time.delayedCall(8000, () => {
+            if (this.active) {
+                this.destroy();
+            }
+        });
+    }
+
+    startDash() {
+        if (!this.active) return;
+
+        this.state = 'dashing';
+        this.setTint(0xff44ff);
+
+        this.scene.tweens.killTweensOf(this);
+
+        const player = this.scene.player;
+        if (!player || !player.active) return;
+
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 1) {
+            this.destroy();
+            return;
+        }
+
+        const ndx = dx / dist;
+        const ndy = dy / dist;
+
+        const dashDistance = Math.max(1500, dist * 2);
+        const targetX = this.x + ndx * dashDistance;
+        const targetY = this.y + ndy * dashDistance;
+
+        const duration = (dashDistance / this.dashSpeed) * 1000;
+
+        this.scene.tweens.add({
+            targets: this,
+            x: targetX,
+            y: targetY,
+            duration: duration,
+            ease: 'Linear',
+            onComplete: () => {
+                if (this.active) {
+                    this.destroy();
+                }
+            }
+        });
+
+        if (this.lifetimeTimer) {
+            this.lifetimeTimer.remove();
+            this.lifetimeTimer = null;
+        }
+    }
+
+    destroy() {
+        if (this.idleTimer) {
+            this.idleTimer.remove();
+            this.idleTimer = null;
+        }
+        if (this.lifetimeTimer) {
+            this.lifetimeTimer.remove();
+            this.lifetimeTimer = null;
+        }
+        super.destroy();
+    }
+}
+// =================================================================
