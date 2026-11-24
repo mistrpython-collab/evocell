@@ -42,7 +42,8 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('wbcMisi1Image', 'assets/images/white-blood-cell/wbc-misi1.jpg');
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
         
-                
+                // ✅ GAMBAR CARD MISI CELL DODGER (Bertahan Abadi)
+        this.load.image('dodgerMisi3Image', 'assets/images/cell-dodger/abadi.png');
         
         // ✅ GAMBAR CARD MISI PROKARIOTIK (Sel Pemburu)
         this.load.image('prokaryoticMisi1Image', 'assets/images/cell-prokaryotic/hunter1.png');

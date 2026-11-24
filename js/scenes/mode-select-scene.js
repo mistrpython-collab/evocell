@@ -69,7 +69,8 @@ export default class ModeSelectScene extends Phaser.Scene {
         if (character === 'prokaryotic') {
             if (modeTitle.includes("1")) return 'prokaryoticMisi1Image';
             if (modeTitle.includes("2")) return 'prokaryoticMisi2Image';
-            return null; // Misi 3 → sprite + PLAY
+            if (modeTitle.includes("3")) return 'dodgerMisi3Image'; // ✅ BARU: Misi 3 pakai gambar
+            return null;
         }
         if (character === 'virus') {
             if (modeTitle.includes("1")) return 'virusMisi1Image';
@@ -92,7 +93,7 @@ export default class ModeSelectScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ BRANCH 1: PUNYA GAMBAR → GAMBAR SAJA, TANPA PLAY BTN
-        //    (WBC 1, Prok 1, Prok 2, Virus 1, Virus 2)
+        //    (WBC 1, Prok 1, Prok 2, Prok 3, Virus 1, Virus 2)
         //    Card langsung diklik untuk masuk game.
         // ==========================================
         if (imageKey) {
@@ -114,7 +115,7 @@ export default class ModeSelectScene extends Phaser.Scene {
         }
         // ==========================================
         // ✅ BRANCH 2: TANPA GAMBAR → SPRITE + PLAY BTN
-        //    (Prokaryotic Misi 3 / Cell Dodger)
+        //    (Hanya fallback jika ada misi baru yang belum ada gambarnya)
         // ==========================================
         else {
             const charPreview = this.add.sprite(0, -80, character);
