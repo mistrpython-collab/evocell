@@ -42,6 +42,43 @@ export default class ModeSelectScene extends Phaser.Scene {
         backButton.on("pointerdown", () => this.scene.start("MenuScene"));
     }
 
+    // ==========================================
+    // ✅ HELPER: TENTUKAN TUJUAN SCENE + MODE
+    // ==========================================
+    getMissionRoute(character, modeTitle) {
+        if (character === 'wbc') {
+            return { gameScene: 'WBCGame', mission: "Misi 1", mode: "tutorial" };
+        }
+        if (character === 'prokaryotic') {
+            if (modeTitle.includes("3")) return { gameScene: 'CellDodgerScene', mission: "Misi 3", mode: "game" };
+            if (modeTitle.includes("2")) return { gameScene: 'ProkaryoticGame', mission: "Misi 2", mode: "game" };
+            return { gameScene: 'ProkaryoticGame', mission: "Misi 1", mode: "tutorial" };
+        }
+        if (character === 'virus') {
+            if (modeTitle.includes("2")) return { gameScene: 'VirusGame2', mission: "Misi 2", mode: "game" };
+            return { gameScene: 'VirusGame', mission: "Misi 1", mode: "tutorial" };
+        }
+        return { gameScene: 'ProkaryoticGame', mission: "Misi 1", mode: "tutorial" };
+    }
+
+    // ==========================================
+    // ✅ HELPER: KEY GAMBAR ILUSTRASI (null = tanpa gambar)
+    // ==========================================
+    getMissionImageKey(character, modeTitle) {
+        if (character === 'wbc') return 'wbcMisi1Image';
+        if (character === 'prokaryotic') {
+            if (modeTitle.includes("1")) return 'prokaryoticMisi1Image';
+            if (modeTitle.includes("2")) return 'prokaryoticMisi2Image';
+            return null; // Misi 3 → sprite + PLAY
+        }
+        if (character === 'virus') {
+            if (modeTitle.includes("1")) return 'virusMisi1Image';
+            if (modeTitle.includes("2")) return 'virusMisi2Image';
+            return null;
+        }
+        return null;
+    }
+
     createModeCard(x, y, modeTitle, character, description) {
         const cardWidth = 320, cardHeight = 420;
         const card = this.add.container(x, y);
@@ -50,96 +87,59 @@ export default class ModeSelectScene extends Phaser.Scene {
         cardBg.setDisplaySize(cardWidth, cardHeight);
         card.add(cardBg);
 
-        const charPreview = this.add.sprite(0, -80, character);
-        charPreview.setScale(3.5);
-        card.add(charPreview);
+        const imageKey = this.getMissionImageKey(character, modeTitle);
+        const route = this.getMissionRoute(character, modeTitle);
 
-        // ✅ GAMBAR ILUSTRASI MISI (hanya untuk WBC)
-               if (character === 'wbc') {
-            const missionImage = this.add.image(0, -3, 'wbcMisi1Image');
+        // ==========================================
+        // ✅ BRANCH 1: PUNYA GAMBAR → GAMBAR SAJA, TANPA PLAY BTN
+        //    (WBC 1, Prok 1, Prok 2, Virus 1, Virus 2)
+        //    Card langsung diklik untuk masuk game.
+        // ==========================================
+        if (imageKey) {
+            const missionImage = this.add.image(0, -3, imageKey);
             missionImage.setDisplaySize(270, 380);
             missionImage.setDepth(2);
-            
-            // // ✅ BUAT MASK ROUNDED RECTANGLE
-            // const maskGraphics = this.make.graphics().fillStyle(0xffffff).fillRoundedRect(0, 0, 270, 380, 20);
-            // const mask = maskGraphics.createGeometryMask();
-            // missionImage.setMask(mask);
-            
             card.add(missionImage);
 
-                    // ✅ CARD BISA DIKLIK LANGSUNG (tanpa tombol PLAY)
-        card.setSize(cardWidth, cardHeight).setInteractive({ useHandCursor: true });
-        card.on("pointerdown", () => {
-            this.scene.start('WBCGame', {
-                role: character,
-                mode: "tutorial",
-                mission: "Misi 1"
+            card.setSize(cardWidth, cardHeight).setInteractive({ useHandCursor: true });
+            card.on("pointerdown", () => {
+                this.scene.start(route.gameScene, {
+                    role: character,
+                    mode: route.mode,
+                    mission: route.mission
+                });
             });
-        });
-        card.on("pointerover", () => card.setScale(1.03));
-        card.on("pointerout", () => card.setScale(1));
-            
-            // Tombol PLAY di bawah untuk WBC
-            // const playBtn = this.add.image(0, 230, "btnPlay");
-            // playBtn.setScale(0.13).setInteractive({ useHandCursor: true });
-            // playBtn.on("pointerover", () => playBtn.setScale(0.14));
-            // playBtn.on("pointerout", () => playBtn.setScale(0.13));
-            // playBtn.on("pointerdown", () => {
-            //     this.scene.start('WBCGame', {
-            //         role: character,
-            //         mode: "tutorial",
-            //         mission: "Misi 1"
-            //     });
-            // });
-            // card.add(playBtn);
+            card.on("pointerover", () => card.setScale(1.03));
+            card.on("pointerout", () => card.setScale(1));
         }
+        // ==========================================
+        // ✅ BRANCH 2: TANPA GAMBAR → SPRITE + PLAY BTN
+        //    (Prokaryotic Misi 3 / Cell Dodger)
+        // ==========================================
         else {
-            // Card biasa (Prokaryotic & Virus) - tombol di posisi normal
+            const charPreview = this.add.sprite(0, -80, character);
+            charPreview.setScale(3.5);
+            card.add(charPreview);
+
             const playBtn = this.add.image(0, 180, "btnPlay");
             playBtn.setScale(0.13).setInteractive({ useHandCursor: true });
             playBtn.on("pointerover", () => playBtn.setScale(0.14));
             playBtn.on("pointerout", () => playBtn.setScale(0.13));
-            
-            // ✅ LOGIKA ROUTING SCENE
             playBtn.on("pointerdown", () => {
-                let gameScene = 'ProkaryoticGame';
-                let internalMission = "Misi 1";
-                
-                if (modeTitle.includes("3")) {
-                    internalMission = "Misi 3";
-                     gameScene = 'CellDodgerScene';
-                } else if (modeTitle.includes("2")) {
-                    internalMission = "Misi 2";
-                }
-
-                if (character === 'virus') {
-                    if (internalMission === "Misi 2") {
-                        gameScene = 'VirusGame2';
-                    } else {
-                        gameScene = 'VirusGame';
-                    }
-                } 
-                // Prokaryotic tetap ProkaryoticGame
-                
-                this.scene.start(gameScene, { 
-                    role: character, 
-                    mode: internalMission === "Misi 1" ? "tutorial" : "game", 
-                    mission: internalMission
+                this.scene.start(route.gameScene, {
+                    role: character,
+                    mode: route.mode,
+                    mission: route.mission
                 });
             });
-            
             card.add(playBtn);
-        } // ✅ TUTUP ELSE
 
-        card.setSize(cardWidth, cardHeight).setInteractive({ useHandCursor: true });
-        card.on("pointerdown", () => {
-            // Trigger playBtn click
-            const playBtn = card.list.find(obj => obj.type === 'Image' && obj.texture.key === 'btnPlay');
-            if (playBtn) playBtn.emit("pointerdown");
-        });
-        card.on("pointerover", () => card.setScale(1.03));
-        card.on("pointerout", () => card.setScale(1));
-        
+            card.setSize(cardWidth, cardHeight).setInteractive({ useHandCursor: true });
+            card.on("pointerdown", () => playBtn.emit("pointerdown"));
+            card.on("pointerover", () => card.setScale(1.03));
+            card.on("pointerout", () => card.setScale(1));
+        }
+
         return card;
     }
 } // ✅ TUTUP CLASS

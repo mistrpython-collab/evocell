@@ -41,6 +41,18 @@ export default class BootScene extends Phaser.Scene {
         this.load.image('bacteria', 'assets/images/bacteria/one-bacteria-green.png');
         this.load.image('wbcMisi1Image', 'assets/images/white-blood-cell/wbc-misi1.jpg');
         this.load.image('bgGameplay', 'assets/images/scene-evocell/deep-sea.png');
+        
+                
+        
+        // ✅ GAMBAR CARD MISI PROKARIOTIK (Sel Pemburu)
+        this.load.image('prokaryoticMisi1Image', 'assets/images/cell-prokaryotic/hunter1.png');
+        this.load.image('prokaryoticMisi2Image', 'assets/images/cell-prokaryotic/hunter2.png');
+        
+        // ✅ GAMBAR CARD MISI VIRUS (Kilat Darah)
+        this.load.image('virusMisi1Image', 'assets/images/virus/virusdash1.png');
+        this.load.image('virusMisi2Image', 'assets/images/virus/virusdash2.png');
+        
+        
 
         // ASET CELL DODGER V2
         this.load.image('dnaCoin', 'assets/images/cell-dodger/helixdnakoin.png');
