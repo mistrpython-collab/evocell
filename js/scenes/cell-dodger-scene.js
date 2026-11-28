@@ -19,11 +19,12 @@
  *  DNA  60  →  Tameng 3 : Hijau terang  (1 HP)
  *  DNA 100  →  Tameng 4 : UNGU TERANG   (2 HP)
  *
- *  🔫 PROGRESI TEMBAKAN PLAYER (4 SISTEM)
- *  DNA  80            →  Tembakan 1 : 1 peluru lurus ke atas
+ *  🔫 PROGRESI TEMBAKAN PLAYER (5 SISTEM)
+ *  DNA  80            →  Tembakan 1 : 1 peluru lurus ke atas (tier: 1.0s → 0.5s → 0.3s)
  *  DNA 250 + 25 kill  →  Tembakan 2 : 2 peluru diagonal / 2.5s
  *  DNA 250 + 35 kill  →  Tembakan 3 : 2 peluru diagonal / 1.5s
- *  DNA 300 + 300 kill →  Tembakan 4 : 4 peluru fan-spread / 1.0s
+ *  DNA 250 + 60 kill  →  Tembakan 4 : 4 peluru fan-spread / 1.0s
+ *  DNA 250 + 90 kill  →  Tembakan 5 : 1 peluru kuning lurus / 0.5s (BARU)
  *
  *  🛡️ TAMENG BAKTERI MUSUH (BERLAPIS, MERAH TERANG)
  *  • Peluang: 20% 1 lapis, 10% 2 lapis, 4% 3 lapis, 66% tanpa tameng.
@@ -33,34 +34,51 @@
  *
  *  💀 KILL COUNTER
  *  • Naik HANYA saat bakteri benar-benar mati (bukan saat tameng pecah).
+ *  • Duplikat boss mati = +5 kill count (setara 5 musuh biasa).
  *  • RESUME : kill TETAP terkumpul.
  *  • EXIT   : kill RESET ke 0.
  *
  *  ⏸️ PAUSE
  *  • Tombol pause (kanan atas) + ESC + P.
  *
- *  👹 BOSS FIGHT — MIMIVIRUS (Trigger: 50 Kill)
- *  • Muncul saat player membunuh 50 musuh bakteri.
+ *  🗂️ STATUS ARSIP — BOSS FIGHT (MIMIVIRUS)
+ *  • Mimivirus (Boss 1) DIARSIPKAN sebagai template multi-boss.
+ *    - Class MimivirusBoss & VirusDuplicate: UTUH (tidak diubah).
+ *    - Fungsi spawnMimivirusBoss / checkBossCollision / spawnVirusDuplicate /
+ *      checkVirusCollision / endBossFight: UTUH (tidak diubah).
+ *    - TRIGGER SPAWN: DIKOMENTARI di hitObstacleWithBullet() → boss tidak
+ *      muncul otomatis. Game jadi endless murni tanpa boss.
+ *    - Trigger DNA >= 100: sudah dikomentari sejak iterasi sebelumnya.
+ *    - Akan di-uncomment saat sistem multi-boss (Boss 2-4) siap dirakit.
+ *
+ *  👹 BOSS FIGHT — MIMIVIRUS (DIARSIPKAN, referensi mekanik)
+ *  • Muncul saat player membunuh 2 musuh bakteri (testing mode).
  *  • Spawn dari atas layar (y = -150), BERGERAK TURUN via TWEEN ke atas tengah
  *    (y = 180), lalu mulai PATROL RANDOM di zona atas.
  *  • 🌀 PATROL: boss bergerak acak HANYA di zona atas layar (Y ~90–340,
  *    X 120–width-120). TIDAK PERNAH turun ke area sel player di bawah.
  *  • 🧬 DUPLIKASI REGULER: Setiap 1.2 detik, boss meninggalkan 1 virus mini.
  *    Virus duplikat punya 2 FASE: IDLE (2 detik) → DASH (kecepatan ~500 px/detik).
+ *    ❤️ Duplikat punya 3 HP → butuh 3 tembakan untuk mati.
+ *    💥 FEEDBACK: kedip putih tiap kena tembakan; tint jadi MERAH saat HP kritis (<=1).
+ *    ⚠️ Tabrakan ke player = duplikat MELEDAK (mati total + -1 HP player).
+ *    🏆 KILL REWARD: Duplikat yang mati = +5 kill count (setara 5 musuh biasa).
  *    Maksimal 15 duplikat di layar (anti-lag). Auto-destroy 8 detik.
  *  • 😡 ENRAGE (MENGAMUK): Saat HP boss mencapai 15, boss langsung mengeluarkan
  *    2 virus duplikat SECARA BERSAMAAN (dengan sedikit offset posisi).
  *    Trigger ini hanya terjadi 1 kali per fight.
- *  • ❤️ Boss punya 35 HP → butuh 35 tembakan untuk mati.
+ *  • 📉 FASE BOSS AKTIF: Saat boss aktif, spawn bakteri biasa DITURUNKAN DRASTIS
+ *    (hanya ~15% peluang spawn) → arena jadi fokus boss fight.
+ *  • ❤️ Boss punya 50 HP → butuh 50 tembakan untuk mati.
  *  • 💥 EFEK DAMAGE: Setiap kali kena tembakan, boss berkedip MERAH TERANG.
  *  • 🔄 Musuh & DNA TETAP spawn normal selama boss fight (arena TIDAK dikosongkan).
  *  • ⚠️ Key texture = 'bossMimivirus' (WAJIB sama dgn boot-scene.js, BUKAN 'mimivirus').
  *
  *  📏 HIERARKI UKURAN BOSS (mengikuti sains dunia nyata):
- *    Mimivirus        → 0.4  (paling kecil)
- *    Thiomargarita    → 0.8  (nanti)
- *    Pandoravirus     → 1.0  (nanti)
- *    Epulo            → 1.5  (paling besar)
+ *    Mimivirus        → 0.4  (paling kecil) — DIARSIPKAN (template Boss 1)
+ *    Thiomargarita    → 0.8  (Boss 2 — akan dibuat)
+ *    Pandoravirus     → 1.0  (Boss 3 — akan dibuat)
+ *    Epulo            → 1.5  (paling besar) — (Boss 4 — akan dibuat)
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -76,7 +94,7 @@ export default class CellDodgerScene extends Phaser.Scene {
     init(data) {
         // ✅ KONFIGURASI ENDLESS MODE
         this.maxHP = 500;
-        this.playerHP = 500; // ✅ DIUBAH: Kembali ke 500 HP aslinya (dari 5)
+        this.playerHP = 500;
         this.dna = 0;
         this.survivalTime = 0;
         this.isGameOver = false;
@@ -136,12 +154,23 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ VARIABEL PENEMBAKAN KE-4 (EMPAT ARAH DIAGONAL LEBAR)
+        //    DIUBAH: DNA 250 + 60 kill (dari 300 + 300)
         // ==========================================
         this.hasQuadShotUpgrade = false;
-        this.quadShotUnlockDNA = 300;
-        this.quadShotUnlockKills = 300;
+        this.quadShotUnlockDNA = 250;
+        this.quadShotUnlockKills = 60;
         this.lastQuadShotTime = 0;
         this.quadShotInterval = 1000;
+
+        // ==========================================
+        // ✅ VARIABEL PENEMBAKAN KE-5 (BARU: 1 PELURU KUNING LURUS, 0.5s)
+        //    Syarat: DNA 250 + 90 kill
+        // ==========================================
+        this.hasPentaShotUpgrade = false;
+        this.pentaShotUnlockDNA = 250;
+        this.pentaShotUnlockKills = 90;
+        this.lastPentaShotTime = 0;
+        this.pentaShotInterval = 500; // 0.5 detik
 
         // ==========================================
         // ✅ KILL COUNTER
@@ -149,19 +178,19 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.bacteriaKillCount = 0;
 
         // ==========================================
-        // ✅ BOSS FIGHT — MIMIVIRUS
-        //    • bossKillThreshold = jumlah kill untuk trigger boss (DIUBAH KE 50)
-        //    • bossSpawned = flag agar boss hanya spawn sekali per run
-        //    • boss = referensi objek MimivirusBoss
+        // 🗂️ BOSS FIGHT — MIMIVIRUS (DIARSIPKAN)
+        //    Semua variabel tetap ada (tidak dihapus) sebagai template Boss 1.
+        //    Trigger spawn dikomentari di hitObstacleWithBullet() → boss tidak
+        //    muncul otomatis. Akan di-uncomment saat multi-boss siap.
         // ==========================================
-        this.bossKillThreshold = 50; // ✅ DIUBAH: Boss muncul setelah 50 kill
-        this.bossSpawned = false;
-        this.boss = null;
-        this.virusDuplicates = [];
-        this.lastVirusSpawnTime = 0;
-        this.virusSpawnInterval = 1200;
-        this.maxVirusDuplicates = 15;
-        this.bossEnrageTriggered = false;
+        this.bossKillThreshold = 2;        // 🗂️ DIARSIPKAN (template Boss 1)
+        this.bossSpawned = false;          // 🗂️ DIARSIPKAN
+        this.boss = null;                  // 🗂️ DIARSIPKAN
+        this.virusDuplicates = [];         // 🗂️ DIARSIPKAN
+        this.lastVirusSpawnTime = 0;       // 🗂️ DIARSIPKAN
+        this.virusSpawnInterval = 1200;    // 🗂️ DIARSIPKAN
+        this.maxVirusDuplicates = 15;      // 🗂️ DIARSIPKAN
+        this.bossEnrageTriggered = false;  // 🗂️ DIARSIPKAN
     }
 
     create(data){
@@ -377,9 +406,13 @@ export default class CellDodgerScene extends Phaser.Scene {
         if (this.dna >= this.quadShotUnlockDNA && this.bacteriaKillCount >= this.quadShotUnlockKills && !this.hasQuadShotUpgrade) {
             this.hasQuadShotUpgrade = true;
         }
+        // ✅ BARU: Cek unlock tembakan ke-5
+        if (this.dna >= this.pentaShotUnlockDNA && this.bacteriaKillCount >= this.pentaShotUnlockKills && !this.hasPentaShotUpgrade) {
+            this.hasPentaShotUpgrade = true;
+        }
 
         // ==========================================
-        // ✅ 5. SISTEM PENEMBAKAN (4 TIPE)
+        // ✅ 5. SISTEM PENEMBAKAN (5 TIPE)
         // ==========================================
         if (this.hasShootingUpgrade && !this.isPaused && !this.isGameOver) {
             const currentTime = this.time.now;
@@ -409,6 +442,14 @@ export default class CellDodgerScene extends Phaser.Scene {
                 this.lastQuadShotTime = currentTime;
             }
         }
+        // ✅ BARU: Sistem tembakan ke-5 (peluru kuning lurus, 0.5s)
+        if (this.hasPentaShotUpgrade && !this.isPaused && !this.isGameOver) {
+            const currentTime = this.time.now;
+            if (currentTime - this.lastPentaShotTime >= this.pentaShotInterval) {
+                this.shootPenta();
+                this.lastPentaShotTime = currentTime;
+            }
+        }
 
         // Cleanup peluru yang keluar layar
         const camW = this.cameras.main.width;
@@ -420,16 +461,20 @@ export default class CellDodgerScene extends Phaser.Scene {
 
         // ==========================================
         // ✅ 6. BOSS FIGHT — CEK PELURU MENGENA BOSS
+        //    🗂️ DIARSIPKAN: fungsi tetap dipanggil, tapi karena this.boss
+        //    selalu null (trigger dikomentari), cek ini langsung return.
         // ==========================================
         this.checkBossCollision();
 
         // ==========================================
         // ✅ 7. BOSS FIGHT — DUPLIKASI VIRUS (setiap 1.2 detik)
+        //    🗂️ DIARSIPKAN: sama, this.boss null → langsung return.
         // ==========================================
         this.spawnVirusDuplicate();
 
         // ==========================================
         // ✅ 8. BOSS FIGHT — CEK TABRAKAN PLAYER vs VIRUS DUPLIKAT
+        //    🗂️ DIARSIPKAN: virusDuplicates selalu kosong → langsung return.
         // ==========================================
         this.checkVirusCollision();
 
@@ -442,6 +487,14 @@ export default class CellDodgerScene extends Phaser.Scene {
 
     spawnObstacle() {
         if (this.isPaused || this.isGameOver) return;
+
+        // 📉 FASE BOSS AKTIF: Spawn bakteri biasa DITURUNKAN DRASTIS
+        //    🗂️ DIARSIPKAN: logic tetap ada, tapi tidak aktif (this.boss null).
+        if (this.boss && this.boss.active) {
+            if (Math.random() > 0.15) {
+                return; // 85% chance skip spawn bakteri biasa
+            }
+        }
 
         const width = this.cameras.main.width;
         const x = Phaser.Math.Between(50, width - 50);
@@ -521,6 +574,8 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
     }
 
+    // 🗂️ DIARSIPKAN — fungsi tetap utuh sebagai template Boss 1.
+    //    Akan dipanggil lagi saat trigger di-uncomment.
     spawnMimivirusBoss() {
         if (this.bossSpawned) return;
         this.bossSpawned = true;
@@ -530,6 +585,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.boss = new MimivirusBoss(this, width / 2, -150, width / 2, 180);
     }
 
+    // 🗂️ DIARSIPKAN — fungsi tetap utuh sebagai template Boss 1.
     checkBossCollision() {
         if (!this.boss || !this.boss.active) return;
 
@@ -575,6 +631,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         }
     }
 
+    // 🗂️ DIARSIPKAN — fungsi tetap utuh sebagai template Boss 1.
     spawnVirusDuplicate() {
         if (!this.boss || !this.boss.active || !this.boss.arrived) return;
 
@@ -589,11 +646,15 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.virusDuplicates.push(duplicate);
     }
 
+    // 🗂️ DIARSIPKAN — fungsi tetap utuh sebagai template Boss 1.
     checkVirusCollision() {
         if (this.virusDuplicates.length === 0) return;
 
         const playerRadius = (this.player.displayWidth / 2);
 
+        // ==========================================
+        // ✅ TABRAKAN PLAYER vs DUPlikat
+        // ==========================================
         for (let i = this.virusDuplicates.length - 1; i >= 0; i--) {
             const dup = this.virusDuplicates[i];
             if (!dup || !dup.active) {
@@ -623,6 +684,9 @@ export default class CellDodgerScene extends Phaser.Scene {
             }
         }
 
+        // ==========================================
+        // ✅ PELURU vs DUPlikat (butuh 3 tembakan)
+        // ==========================================
         this.projectiles.children.iterate((bullet) => {
             if (!bullet || !bullet.active) return;
 
@@ -637,14 +701,34 @@ export default class CellDodgerScene extends Phaser.Scene {
 
                 if (dist < dupRadius) {
                     bullet.destroy();
-                    dup.destroy();
-                    this.virusDuplicates.splice(i, 1);
+
+                    // 💥 Kurangi 1 HP duplikat
+                    dup.hp--;
+
+                    // 💥 Feedback: kedip putih saat kena tembakan
+                    dup.setTint(0xffffff);
+                    this.time.delayedCall(100, () => {
+                        if (dup.active) dup.refreshTint();
+                    });
+
+                    // ✅ Hancurkan hanya jika HP habis
+                    if (dup.hp <= 0) {
+                        dup.destroy();
+                        this.virusDuplicates.splice(i, 1);
+
+                        // 🏆 KILL REWARD: +5 kill count (setara 5 musuh biasa)
+                        this.bacteriaKillCount += 5;
+                        this.updateHUD();
+                        console.log(`🧬 Virus duplicate destroyed! +5 kills. Total: ${this.bacteriaKillCount}`);
+                    }
+
                     break;
                 }
             }
         });
     }
 
+    // 🗂️ DIARSIPKAN — fungsi tetap utuh sebagai template Boss 1.
     endBossFight() {
         if (this.boss) {
             this.tweens.killTweensOf(this.boss);
@@ -679,7 +763,7 @@ export default class CellDodgerScene extends Phaser.Scene {
         dna.destroy();
         this.dna += 10;
 
-        // ✅ BOSS FIGHT — TRIGGER SPAWN MIMIVIRUS SAAT DNA >= 100 (DIKOMENTARI, AKAN DIPAKAI LAGI)
+        // ✅ BOSS FIGHT — TRIGGER SPAWN MIMIVIRUS SAAT DNA >= 100 (DIKOMENTARI)
         // if (!this.bossSpawned && this.dna >= 100) {
         //     this.spawnMimivirusBoss();
         // }
@@ -819,6 +903,16 @@ export default class CellDodgerScene extends Phaser.Scene {
         });
     }
 
+    // ==========================================
+    // ✅ BARU: TEMBAKAN KE-5 (1 PELURU KUNING LURUS, 0.5s)
+    // ==========================================
+    shootPenta() {
+        const bullet = this.projectiles.create(this.player.x, this.player.y - 30, 'bulletYellowGreen');
+        bullet.setDepth(4);
+        bullet.setVelocityY(-500);
+        this.time.delayedCall(3000, () => { if (bullet.active) bullet.destroy(); });
+    }
+
     hitObstacleWithBullet(bullet, obstacle) {
         if (!bullet.active || !obstacle.active) return;
 
@@ -842,10 +936,13 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.updateHUD();
 
         // ==========================================
-        // ✅ BOSS FIGHT — CEK TRIGGER SPAWN MIMIVIRUS (AKTIF: 50 KILL)
-        if (!this.bossSpawned && this.bacteriaKillCount >= this.bossKillThreshold) {
-            this.spawnMimivirusBoss();
-        }
+        // 🗂️ DIARSIPKAN — Trigger spawn Mimivirus (Boss 1)
+        //    Akan di-uncomment saat sistem multi-boss (Boss 2-4) siap dirakit.
+        //    Untuk sekarang, boss TIDAK akan spawn otomatis (game endless murni).
+        // ==========================================
+        // if (!this.bossSpawned && this.bacteriaKillCount >= this.bossKillThreshold) {
+        //     this.spawnMimivirusBoss();
+        // }
         // ==========================================
 
         this.killsInCurrentTier++;
@@ -961,7 +1058,9 @@ export default class CellDodgerScene extends Phaser.Scene {
         this.lastDualShotTime = 0;
         this.lastAdvancedShotTime = 0;
         this.lastQuadShotTime = 0;
+        this.lastPentaShotTime = 0; // ✅ BARU: Reset timer tembakan ke-5
 
+        // 🗂️ DIARSIPKAN — reset Mimivirus (tetap ada, siap dipakai saat unarchive)
         this.bossSpawned = false;
         this.bossEnrageTriggered = false;
 
@@ -1122,7 +1221,11 @@ export default class CellDodgerScene extends Phaser.Scene {
 }
 
 // =================================================================
-// ✅ BOSS FIGHT — CLASS MIMIVIRUS
+// 🗂️ BOSS FIGHT — CLASS MIMIVIRUS (DIARSIPKAN sebagai template Boss 1)
+// =================================================================
+// Class ini UTUH — tidak diubah, tidak dihapus.
+// Akan jadi template untuk Boss 2, 3, 4 nanti.
+// Trigger spawn dikomentari di hitObstacleWithBullet().
 // =================================================================
 class MimivirusBoss extends Phaser.GameObjects.Image {
     constructor(scene, startX, startY, targetX, targetY) {
@@ -1133,9 +1236,9 @@ class MimivirusBoss extends Phaser.GameObjects.Image {
         this.targetY = targetY;
         this.arrived = false;
 
-        // ❤️ HP BOSS = 35 (butuh 35 tembakan untuk mati)
-        this.hp = 35;
-        this.maxHp = 35;
+        // ❤️ HP BOSS = 50 (butuh 50 tembakan untuk mati)
+        this.hp = 50;
+        this.maxHp = 50;
 
         this.patrolSpeed = 260;
         this.patrolMinX = 120;
@@ -1195,14 +1298,19 @@ class MimivirusBoss extends Phaser.GameObjects.Image {
 // =================================================================
 
 // =================================================================
-// ✅ BOSS FIGHT — CLASS VIRUS DUPLICATE (IDLE → DASH)
+// 🗂️ BOSS FIGHT — CLASS VIRUS DUPLICATE (IDLE → DASH · 3 HP)
+// =================================================================
+// Class ini UTUH — tidak diubah, tidak dihapus.
+// Akan jadi template minion untuk Boss 2, 3, 4 nanti.
 // =================================================================
 class VirusDuplicate extends Phaser.GameObjects.Image {
     constructor(scene, x, y) {
         super(scene, x, y, 'bossMimivirus');
         scene.add.existing(this);
 
-        this.hp = 1;
+        // ❤️ HP = 3 (butuh 3 tembakan untuk mati) — DIUBAH dari 6
+        this.hp = 3;
+        this.maxHp = 3;
 
         this.state = 'idle';
         this.idleDuration = 2000;
@@ -1210,7 +1318,7 @@ class VirusDuplicate extends Phaser.GameObjects.Image {
 
         this.setScale(0.2);
         this.setDepth(15);
-        this.setTint(0x8844ff);
+        this.refreshTint();
 
         this.setAlpha(0);
         scene.tweens.add({
@@ -1233,11 +1341,23 @@ class VirusDuplicate extends Phaser.GameObjects.Image {
         });
     }
 
+    refreshTint() {
+        if (!this.active) return;
+
+        if (this.hp <= 1) {
+            this.setTint(0xff4444);   // 🩸 kritis → merah (HP <= 1)
+        } else if (this.state === 'dashing') {
+            this.setTint(0xff44ff);   // ⚡ dash → ungu terang
+        } else {
+            this.setTint(0x8844ff);   // 💤 idle → ungu pudar
+        }
+    }
+
     startDash() {
         if (!this.active) return;
 
         this.state = 'dashing';
-        this.setTint(0xff44ff);
+        this.refreshTint();
 
         this.scene.tweens.killTweensOf(this);
 
